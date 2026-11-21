@@ -137,7 +137,7 @@ select.sel{padding:10px;border:1px solid var(--line);border-radius:10px;backgrou
 <script>
 /* ============ CONFIG ============ */
 const START_CENTER=[-27.487,-55.120];          // Oberá, Misiones (cambialo por tu ciudad)
-const DLAT=0.00009;                             // celda ≈ 10 m (100 m²)
+const DLAT=0.000045;                            // celda ≈ 5 m (25 m²)
 const REF_LAT=-27.5;
 const DLNG=DLAT/Math.cos(REF_LAT*Math.PI/180);
 const CELL_M2=(DLAT*111320)*(DLAT*111320);
@@ -169,6 +169,19 @@ let DB=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'));
 const PREF=Object.assign({area:'auto',dist:'auto'},JSON.parse(localStorage.getItem('conquista_pref')||'{}'));
 const savePref=()=>localStorage.setItem('conquista_pref',JSON.stringify(PREF));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+if((DB.grid||1)<2){
+  const N={};
+  for(const k in DB.cells){
+    const p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
+    for(let a=0;a<2;a++)for(let b=0;b<2;b++)N[(2*i+a)+':'+(2*j+b)]=DB.cells[k].slice();
+  }
+  DB.cells=N;
+  for(const k in DB.steals)DB.steals[k]*=4;
+  DB.history.forEach(h=>h.cells*=4);
+  for(const u in DB.notifs)DB.notifs[u].forEach(n=>{if(n.f)n.f*=4;if(n.h)n.h*=4;if(n.b)n.b*=4});
+  for(const u in DB.stats){const t=DB.stats[u];t.cells*=4;t.stolen*=4;t.maxLoop*=4}
+  DB.grid=2;save();
+}
 const $=id=>document.getElementById(id);
 const seasonKey=()=>new Date().toISOString().slice(0,7);
 const dayKey=(d=new Date())=>d.toLocaleDateString('en-CA');
@@ -375,20 +388,29 @@ function refreshTop(){
 }
 function draw(){
   cellLayer.clearLayers();
-  // agrupa celdas contiguas (misma fila, dueño, fuerza y escudo) en un solo rectángulo
-  const rows={},t=Date.now();
+  const t=Date.now(),rows={};
   for(const k in DB.cells){
     const c=DB.cells[k],p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
-    const key=c[0]+'|'+i+'|'+cellStr(c)+'|'+(c[1]+(c[5]||0)>t?1:0);
+    const key=c[0]+'|'+cellStr(c)+'|'+(c[1]+(c[5]||0)>t?1:0)+'|'+i;
     (rows[key]=rows[key]||[]).push(j);
   }
+  // 1) tramos horizontales  2) se unen verticalmente los tramos idénticos de filas consecutivas
+  const blocks={};
   for(const key in rows){
-    const [o,is,ss,sh]=key.split('|'),i=+is,str=+ss,js=rows[key].sort((x,y)=>x-y);
-    const col=(DB.users[o]||{}).color||'#888',mine=o===DB.session,shd=sh==='1';
-    const style={renderer,color:shd?'#fff':col,weight:shd?1.6:(mine?1:.5),dashArray:shd?'3 3':null,opacity:.9,fillColor:col,fillOpacity:Math.min(.87,.22+.13*str),interactive:false};
+    const q=key.lastIndexOf('|'),base=key.slice(0,q),i=+key.slice(q+1),js=rows[key].sort((x,y)=>x-y);
     let a=js[0],p=a;
-    const flush=()=>L.rectangle([[i*DLAT,a*DLNG],[(i+1)*DLAT,(p+1)*DLNG]],style).addTo(cellLayer);
-    for(let n=1;n<js.length;n++){if(js[n]===p+1){p=js[n]}else{flush();a=p=js[n]}}
+    const add=()=>{const k2=base+'|'+a+'|'+p;(blocks[k2]=blocks[k2]||[]).push(i)};
+    for(let n=1;n<js.length;n++){if(js[n]===p+1){p=js[n]}else{add();a=p=js[n]}}
+    add();
+  }
+  for(const k2 in blocks){
+    const [o,ss,sh,as,ps]=k2.split('|'),a=+as,p=+ps,str=+ss,is=blocks[k2].sort((x,y)=>x-y);
+    const col=(DB.users[o]||{}).color||'#888',mine=o===DB.session,shd=sh==='1';
+    const fo=Math.min(.85,.25+.12*str);
+    const style={renderer,color:shd?'#fff':col,weight:shd?1.2:.6,opacity:shd?.8:fo,dashArray:null,fillColor:col,fillOpacity:fo,interactive:false};
+    let i0=is[0],i1=i0;
+    const flush=()=>L.rectangle([[i0*DLAT,a*DLNG],[(i1+1)*DLAT,(p+1)*DLNG]],style).addTo(cellLayer);
+    for(let n=1;n<is.length;n++){if(is[n]===i1+1){i1=is[n]}else{flush();i0=i1=is[n]}}
     flush();
   }
   refreshTop();
