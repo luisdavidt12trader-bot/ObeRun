@@ -1,1 +1,993 @@
-<h1>github pages</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conquista – Prototipo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#fff;--fg:#1c1c1e;--card:#fff;--mut:#6b7280;--line:#e5e7eb;--acc:#16a34a}
+@media (prefers-color-scheme:dark){:root{--bg:#111315;--fg:#f2f2f2;--card:#1c1f22;--mut:#9ca3af;--line:#2d3237}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+button{font:inherit;cursor:pointer;color:var(--fg)}
+.mut{color:var(--mut)}
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:2000}
+.box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
+.box h1{margin:0 0 4px;font-size:26px}
+.box p{margin:0 0 16px;color:var(--mut);font-size:14px}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs button{flex:1;padding:8px;border:1px solid var(--line);background:none;border-radius:8px;font-size:14px}
+.tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+input{width:100%;padding:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font-size:16px}
+.primary{width:100%;padding:12px;border:0;border-radius:10px;background:var(--acc);color:#fff;font-weight:600}
+#err{color:#dc2626;font-size:13px;min-height:18px;margin-top:8px}
+#app{position:fixed;inset:0;display:none}
+#map{position:absolute;inset:0}
+#top{position:absolute;top:0;left:0;right:0;z-index:1000;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;pointer-events:none}
+.chip{pointer-events:auto;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:14px;box-shadow:0 2px 8px #0003;display:flex;align-items:center;gap:6px;position:relative}
+.chip b{max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip small{color:var(--mut);font-size:11px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
+#badge,#sbadge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#dc2626;color:#fff;font-size:11px;font-style:normal;display:none;align-items:center;justify-content:center;padding:0 4px}
+#bar{position:absolute;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);padding:10px 10px calc(env(safe-area-inset-bottom,0px) + 10px);border-radius:16px 16px 0 0;box-shadow:0 -4px 16px #0003}
+#status{font-size:13px;color:var(--mut);margin-bottom:8px;min-height:18px;text-align:center}
+.row{display:flex;gap:8px}
+.row button{flex:1;padding:12px 6px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:14px}
+.row button.go{background:var(--acc);color:#fff;border-color:var(--acc)}
+.row button.stop{background:#dc2626;color:#fff;border-color:#dc2626}
+#sheet{position:fixed;inset:0;z-index:1500;background:#0008;display:none;align-items:flex-end}
+#sheet .in{width:100%;max-height:85%;overflow:auto;background:var(--card);border-radius:16px 16px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+#sheet h2{margin:0 0 8px;font-size:18px}
+#sheet h3{margin:16px 0 6px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.rk{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rk b{width:22px;text-align:center}.rk .n{flex:1;font-size:14px}.rk .s{color:var(--mut);font-size:12px;text-align:right;white-space:nowrap}
+.menu button{display:block;width:100%;text-align:left;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.menu small{display:block;color:var(--mut);font-weight:400;margin-top:2px}
+.units{display:flex;gap:10px}.units label{flex:1;font-size:13px;color:var(--mut)}
+.units select{width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font-size:15px}
+.prof{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:6px 0 4px}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:4px}
+.kv{display:flex;gap:8px;margin-bottom:12px}
+.kv div{flex:1;border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;font-size:20px}
+.kv b{display:block;font-size:16px}.kv small{display:block;font-size:11px;color:var(--mut)}
+.ptabs{display:flex;gap:6px;margin-bottom:10px}
+.ptabs button{flex:1;padding:8px;border:1px solid var(--line);background:none;border-radius:8px;font-size:14px}
+.ptabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.mi{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.mi.done{border-color:var(--acc)}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ac{border:1px solid var(--line);border-radius:12px;padding:10px;opacity:.45;filter:grayscale(1);font-size:13px}
+.ac.on{opacity:1;filter:none;border-color:var(--acc)}
+.ac .i{font-size:26px}.ac b{display:block;margin-top:2px}.ac small{color:var(--mut)}
+.rules p{margin:0 0 10px;font-size:14px;line-height:1.4}
+.sbtn{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:13px}
+.ppl{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ppl .n{flex:1;min-width:0;font-size:14px}
+.ppl .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ppl[data-a],.rk[data-a]{cursor:pointer}
+.chatbox{height:40vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:8px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:82%;padding:7px 10px;border-radius:12px;background:var(--line);font-size:14px;align-self:flex-start;word-wrap:break-word}
+.msg.me{align-self:flex-end;background:var(--acc);color:#fff}
+.msg small{display:block;font-size:11px;opacity:.7}
+.sendrow{display:flex;gap:6px;align-items:center}.sendrow input{margin:0;flex:1;min-width:0}.sendrow .primary{width:auto;padding:12px 16px}
+.reacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;width:100%}
+select.sel{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font-size:16px}
+.blabel{font-size:11px;font-weight:700;color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap;opacity:.7;pointer-events:none;text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.dotn{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#dc2626;color:#fff;font-size:11px;text-align:center;padding:0 5px}
+#fx{position:fixed;inset:0;z-index:2500;pointer-events:none;display:none}
+#banner{position:fixed;left:50%;top:38%;z-index:2600;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;text-align:center;background:var(--card);border:2px solid var(--acc);border-radius:20px;padding:18px 26px;box-shadow:0 10px 40px #0006;max-width:88%}
+#banner.show{animation:pop 3.2s ease forwards}
+#banner b{display:block;font-size:21px;margin-bottom:4px}#banner span{color:var(--mut);font-size:14px}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}20%{transform:translate(-50%,-50%) scale(1)}85%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 96px);transform:translateX(-50%);z-index:3000;background:#111;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:92%;display:none;text-align:center}
+.me{width:16px;height:16px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 3px #2563eb55}
+.leaflet-container{font:inherit}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h1>🗺️ Conquista</h1>
+    <p>Caminá, encerrá zonas y quedate con la ciudad.</p>
+    <div class="tabs">
+      <button id="tabIn" class="on">Ingresar</button>
+      <button id="tabUp">Crear usuario</button>
+    </div>
+    <input id="u" placeholder="Usuario (letras y números)" autocomplete="username" autocapitalize="none">
+    <input id="p" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="primary" id="go">Ingresar</button>
+    <div id="err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="map"></div>
+  <div id="top">
+    <button class="chip" id="chipMe"><span class="dot" id="meDot"></span><b id="meName"></b><small id="meLvl"></small></button>
+    <div class="chip" id="meScore">0 m²</div>
+    <div class="chip" id="meStreak">🔥 0</div>
+    <div style="flex:1"></div>
+    <button class="chip" id="btnSoc">👥<i id="sbadge"></i></button>
+    <button class="chip" id="btnNot">🔔<i id="badge"></i></button>
+    <button class="chip" id="btnRank">🏆</button>
+    <button class="chip" id="btnMenu">☰</button>
+  </div>
+  <div id="bar">
+    <div id="status">Elegí cómo querés jugar</div>
+    <div class="row" id="rowStart">
+      <button class="go" id="btnGps">🚶 Caminar (GPS real)</button>
+      <button id="btnSim">✏️ Dibujar (prueba)</button>
+    </div>
+    <div class="row" id="rowRec" style="display:none">
+      <button id="btnClose" class="go">✔ Cerrar lazo</button>
+      <button id="btnCancel" class="stop">✖ Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="sheet"><div class="in" id="sheetIn"></div></div>
+<canvas id="fx"></canvas>
+<div id="banner"><b id="bT"></b><span id="bS"></span></div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ============ CONFIG ============ */
+const START_CENTER=[-27.487,-55.120];          // Oberá, Misiones (cambialo por tu ciudad)
+const DLAT=0.00009;                             // celda ≈ 10 m (100 m²)
+const REF_LAT=-27.5;
+const DLNG=DLAT/Math.cos(REF_LAT*Math.PI/180);
+const CELL_M2=(DLAT*111320)*(DLAT*111320);
+const CLOSE_DIST=20, MAX_SPEED=5.6, MIN_STEP=3;
+const COLORS=['#e11d48','#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d'];
+const HOUR=3600e3, DAY=864e5;
+const SHIELD_BASE=2*HOUR;                       // escudo base de cada zona conquistada
+const SHIELD_PER_STREAK=30*60e3;                // +30 min por día de racha (hasta 10 días)
+const MAX_STR=5;                                // fuerza máxima de una zona
+const XP_LEVEL=200;
+const MAX_TEAM=10;                              // miembros máximos por equipo
+const TEAM_EMOJIS=['🦅','🐺','🦁','🐯','🔥','⚡','🌵','🐢','🦊','🚀'];
+const REACTS=[{e:'😡',t:'¡Me las vas a pagar!'},{e:'🤡',t:'Qué susto… ni lo sentí'},{e:'😂',t:'Jaja, ni cosquillas'},{e:'😎',t:'La recupero mañana'},{e:'🔥',t:'Esto es guerra'}];
+const BOT=['¡Jaja, ya vas a ver!','Esa zona era mía 😤','Te veo en el mapa… 👀','Buena jugada, pero mañana la recupero','¿Eso es todo lo que tenés? 😏'];
+// BARRIOS: cada celda del mapa pertenece al barrio cuyo centro le queda más cerca.
+// Por defecto se generan 9 sectores alrededor de START_CENTER. Reemplazalos por tus barrios reales:
+// {n:'Nombre', c:[latitud, longitud del centro]}
+const BARRIOS=(()=>{const [la,lo]=START_CENTER,d=0.008;return[
+  {n:'Centro',c:[la,lo]},{n:'Norte',c:[la+d,lo]},{n:'Sur',c:[la-d,lo]},{n:'Este',c:[la,lo+d]},{n:'Oeste',c:[la,lo-d]},
+  {n:'Noreste',c:[la+d,lo+d]},{n:'Noroeste',c:[la+d,lo-d]},{n:'Sudeste',c:[la-d,lo+d]},{n:'Sudoeste',c:[la-d,lo-d]}]})();
+
+/* ============ ESTADO / "BACKEND" LOCAL ============ */
+// En el prototipo todo vive en localStorage (solo este navegador).
+// En la app real esto será Supabase/Firebase.
+// celda = [dueño, conquistadaEn, refuerzos, desde, daño, escudoMs, díaRefuerzo]
+const KEY='conquista_v3';
+const DEF={users:{},cells:{},season:null,history:[],session:null,notifs:{},stats:{},ach:{},missions:{},teams:{},friends:{},chats:{},seen:{},steals:{}};
+let DB=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'));
+const PREF=Object.assign({area:'auto',dist:'auto'},JSON.parse(localStorage.getItem('conquista_pref')||'{}'));
+const savePref=()=>localStorage.setItem('conquista_pref',JSON.stringify(PREF));
+const save=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+const $=id=>document.getElementById(id);
+const seasonKey=()=>new Date().toISOString().slice(0,7);
+const dayKey=(d=new Date())=>d.toLocaleDateString('en-CA');
+function weekKey(d=new Date()){
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-n);
+  const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  return t.getUTCFullYear()+'-W'+String(Math.ceil(((t-y0)/DAY+1)/7)).padStart(2,'0');
+}
+function checkSeason(){
+  const s=seasonKey();
+  if(DB.season&&DB.season!==s){
+    const sc=scores();
+    if(sc.length)DB.history.unshift({season:DB.season,winner:sc[0].name,cells:sc[0].n});
+    DB.cells={};
+  }
+  DB.season=s;save();
+}
+function scores(){
+  const c={};
+  for(const k in DB.cells){const o=DB.cells[k][0];c[o]=(c[o]||0)+1}
+  return Object.entries(c).map(([name,n])=>({name,n})).sort((a,b)=>b.n-a.n);
+}
+async function hash(s){
+  try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('conq:'+s));
+      return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  catch(e){return btoa(unescape(encodeURIComponent(s)))}
+}
+
+/* ============ FORMATO / UNIDADES ============ */
+const nf=(n,d)=>n.toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+function fmtArea(m2){
+  const u=PREF.area;
+  if(u==='m2')return nf(m2,0)+' m²';
+  if(u==='ha')return nf(m2/1e4,2)+' ha';
+  if(u==='km2')return nf(m2/1e6,3)+' km²';
+  if(u==='acre')return nf(m2/4046.856,2)+' acres';
+  return m2>=1e6?nf(m2/1e6,2)+' km²':m2>=1e4?nf(m2/1e4,1)+' ha':nf(m2,0)+' m²';
+}
+function fmtDist(m){
+  const u=PREF.dist;
+  if(u==='m')return nf(m,0)+' m';
+  if(u==='km')return nf(m/1000,2)+' km';
+  if(u==='mi')return nf(m/1609.344,2)+' mi';
+  return m>=1000?nf(m/1000,2)+' km':nf(m,0)+' m';
+}
+function fmtDur(ms){
+  const m=Math.max(0,Math.round(ms/6e4));
+  if(m<1)return 'instantes';if(m<60)return m+' min';
+  const h=Math.floor(m/60);if(h<24)return h+' h'+(m%60?' '+(m%60)+' min':'');
+  const d=Math.floor(h/24);return d+' d'+(h%24?' '+(h%24)+' h':'');
+}
+const fmtAgo=ts=>'hace '+fmtDur(Date.now()-ts);
+
+/* ============ MECÁNICAS: fuerza, escudo, racha, nivel ============ */
+const cellStr=c=>Math.max(1,Math.min(MAX_STR,1+(c[2]||0)+Math.floor((Date.now()-(c[3]||c[1]))/DAY))-(c[4]||0));
+const shieldLeft=c=>c[1]+(c[5]||0)-Date.now();
+function getStats(u){
+  return DB.stats[u]=DB.stats[u]||{loops:0,dist:0,cells:0,stolen:0,maxLoop:0,night:0,best:0,streak:0,last:null,overtakes:0,leads:0,fort:0,xp:0};
+}
+function curStreak(st){
+  const t=dayKey(),y=dayKey(new Date(Date.now()-DAY));
+  return (st.last===t||st.last===y)?st.streak:0;
+}
+function updStreak(st){
+  const t=dayKey(),y=dayKey(new Date(Date.now()-DAY));
+  if(st.last===t)return false;
+  st.streak=(st.last===y)?st.streak+1:1;st.last=t;st.best=Math.max(st.best,st.streak);st.xp+=5;
+  return true;
+}
+const shieldFor=u=>SHIELD_BASE+Math.min(curStreak(getStats(u)),10)*SHIELD_PER_STREAK;
+const lvl=xp=>Math.floor(xp/XP_LEVEL)+1;
+
+/* ============ AVISOS (notificaciones) ============ */
+function notify(user,data){
+  const L=DB.notifs[user]=DB.notifs[user]||[];
+  const n=Object.assign({ts:Date.now(),read:false},data);
+  L.unshift(n);DB.notifs[user]=L.slice(0,50);
+  if(user===DB.session&&window.Notification&&Notification.permission==='granted'){
+    try{new Notification('Conquista',{body:notifText(n)})}catch(e){}
+  }
+}
+const unread=()=>(DB.notifs[DB.session]||[]).filter(n=>!n.read).length;
+function notifText(n){
+  const by=esc(n.by||'');
+  if(n.type==='react')return n.e+' '+by+' te respondió: “'+esc(n.t)+'”';
+  if(n.type==='follow')return '👤 '+by+' empezó a seguirte';
+  if(n.type==='join')return '🛡 '+by+' se unió a tu equipo';
+  if(n.type==='walk')return '📣 '+by+' convoca a caminar: '+esc(n.text);
+  const p=[];
+  if(n.f)p.push('te robó '+fmtArea(n.f*CELL_M2));
+  if(n.h)p.push('dañó '+fmtArea(n.h*CELL_M2)+' de tu territorio');
+  if(n.b)p.push('chocó contra tu escudo 🛡 ('+fmtArea(n.b*CELL_M2)+' protegidos)');
+  return '⚔️ '+by+' '+p.join(' y ');
+}
+
+/* ============ MISIONES SEMANALES ============ */
+const MK={
+  dist:{goals:[2000,3000,5000],fmt:fmtDist,txt:g=>'Caminá '+fmtDist(g),inc:(R,d)=>d},
+  area:{goals:[5000,10000,20000],fmt:fmtArea,txt:g=>'Conquistá '+fmtArea(g)+' de territorio',inc:R=>(R.fresh+R.flipped)*CELL_M2},
+  loops:{goals:[3,4,5],fmt:String,txt:g=>'Cerrá '+g+' lazos',inc:()=>1},
+  steal:{goals:[500,1000,2000],fmt:fmtArea,txt:g=>'Robale '+fmtArea(g)+' a otros jugadores',inc:R=>R.flipped*CELL_M2},
+  night:{goals:[1,1,2],fmt:String,txt:g=>'Hacé '+g+' caminata'+(g>1?'s':'')+' nocturna'+(g>1?'s':'')+' (20 a 6 h)',inc:(R,d,night)=>night?1:0},
+  reinf:{goals:[1000,2000,4000],fmt:fmtArea,txt:g=>'Reforzá '+fmtArea(g)+' de tu territorio',inc:R=>R.reinforced*CELL_M2}
+};
+const MKEYS=Object.keys(MK);
+function ensureMissions(u){
+  const w=weekKey();let m=DB.missions[u];
+  if(!m||m.week!==w){
+    const n=+w.split('-W')[1],gi=n%3;
+    m=DB.missions[u]={week:w,list:[0,2,4].map(o=>{const k=MKEYS[(n+o)%6];return{k,g:MK[k].goals[gi],p:0,done:false}})};
+    save();
+  }
+  return m;
+}
+function updMissions(R,dist,night){
+  const m=ensureMissions(DB.session),st=getStats(DB.session);
+  m.list.forEach(x=>{
+    if(x.done)return;
+    x.p+=MK[x.k].inc(R,dist,night);
+    if(x.p>=x.g){x.p=x.g;x.done=true;st.xp+=100;queueCel('✅ ¡Misión cumplida!',MK[x.k].txt(x.g)+' · +100 XP',false)}
+  });
+}
+
+/* ============ LOGROS ============ */
+const ACH=[
+  {id:'first',i:'🚩',n:'Primera conquista',d:'Cerrá tu primer lazo',ok:s=>s.loops>=1},
+  {id:'night',i:'🌙',n:'Búho nocturno',d:'Hacé una caminata entre las 20 y las 6 h',ok:s=>s.night>=1},
+  {id:'km10',i:'👟',n:'Caminante',d:'Acumulá 10 km caminando',ok:s=>s.dist>=1e4},
+  {id:'km50',i:'🥾',n:'Trotamundos',d:'Acumulá 50 km caminando',ok:s=>s.dist>=5e4},
+  {id:'big',i:'🗺️',n:'Gran lazo',d:'Encerrá 1 ha en un solo lazo',ok:s=>s.maxLoop*CELL_M2>=1e4},
+  {id:'thief',i:'🦹',n:'Ladrón de barrio',d:'Robale 1 ha en total a otros jugadores',ok:s=>s.stolen*CELL_M2>=1e4},
+  {id:'ha1',i:'🏞️',n:'Terrateniente',d:'Tené 1 ha de territorio a la vez',ok:(s,cur)=>cur>=1e4},
+  {id:'st3',i:'🔥',n:'En racha',d:'Caminá 3 días seguidos',ok:s=>s.best>=3},
+  {id:'st7',i:'☄️',n:'Imparable',d:'Caminá 7 días seguidos',ok:s=>s.best>=7},
+  {id:'fort',i:'🏰',n:'Fortaleza',d:'Llevá una zona a fuerza máxima',ok:s=>s.fort>=1},
+  {id:'over',i:'🎯',n:'Remontada',d:'Superá a otro jugador en el ranking',ok:s=>s.overtakes>=1},
+  {id:'lead',i:'👑',n:'Rey de la ciudad',d:'Convertite en líder del ranking',ok:s=>s.leads>=1},
+  {id:'team',i:'🛡️',n:'Compañero',d:'Unite a un equipo',ok:(s,c,me)=>!!teamOf(me)},
+  {id:'friend',i:'🤝',n:'Sociable',d:'Seguí a otro jugador',ok:(s,c,me)=>(DB.friends[me]||[]).length>=1},
+  {id:'king',i:'🏘️',n:'Rey del barrio',d:'Sé el número 1 de un barrio',ok:(s,c,me)=>leadersOf(me).length>=1},
+  {id:'troll',i:'😈',n:'Provocador',d:'Mandá una reacción o mensaje a otro jugador',ok:s=>(s.msgs||0)>=1}
+];
+function checkAch(){
+  const me=DB.session,st=getStats(me),A=DB.ach[me]=DB.ach[me]||{};
+  const cur=((scores().find(s=>s.name===me)||{n:0}).n)*CELL_M2;
+  ACH.forEach(a=>{
+    if(!A[a.id]&&a.ok(st,cur,me)){A[a.id]=Date.now();st.xp+=50;queueCel('🏅 Logro: '+a.n,a.d+' · +50 XP',false)}
+  });
+}
+
+/* ============ LOGIN ============ */
+let mode='in';
+$('tabIn').onclick=()=>setMode('in');$('tabUp').onclick=()=>setMode('up');
+function setMode(m){mode=m;$('tabIn').classList.toggle('on',m==='in');$('tabUp').classList.toggle('on',m==='up');
+  $('go').textContent=m==='in'?'Ingresar':'Crear usuario';$('err').textContent=''}
+$('go').onclick=async()=>{
+  const u=$('u').value.trim().toLowerCase(),p=$('p').value;
+  if(!/^[a-z0-9_.-]{3,20}$/.test(u))return $('err').textContent='Usuario: 3 a 20 caracteres (letras, números, _ . -)';
+  if(p.length<4)return $('err').textContent='La contraseña necesita al menos 4 caracteres';
+  const h=await hash(p);
+  if(mode==='up'){
+    if(DB.users[u])return $('err').textContent='Ese usuario ya existe';
+    DB.users[u]={h,color:COLORS[Object.keys(DB.users).length%COLORS.length]};
+  }else{
+    if(!DB.users[u]||DB.users[u].h!==h)return $('err').textContent='Usuario o contraseña incorrectos';
+  }
+  DB.session=u;save();enter();
+};
+function logout(){DB.session=null;save();stopAll();$('app').style.display='none';$('login').style.display='flex';$('p').value=''}
+
+/* ============ MAPA ============ */
+let map,renderer,cellLayer,meMarker,pathLine,startMarker;
+function enter(){
+  checkSeason();
+  $('login').style.display='none';$('app').style.display='block';
+  ensureMissions(DB.session);getStats(DB.session);
+  if(!map){
+    map=L.map('map',{zoomControl:false}).setView(START_CENTER,16);
+    renderer=L.canvas({padding:.5});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    cellLayer=L.layerGroup().addTo(map);
+    map.on('click',onMapClick);
+    navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],17),()=>{},{timeout:6000});
+    setInterval(()=>{if(DB.session)draw()},60000); // vence escudos / sube fuerza
+  }
+  setTimeout(()=>map.invalidateSize(),100);
+  draw();drawBarrios();
+  const n=unread();
+  if(n){
+    toast('🔔 Tenés '+n+' aviso'+(n>1?'s':'')+' nuevo'+(n>1?'s':'')+': tocá la campana',5000);
+    if(window.Notification&&Notification.permission==='granted'){try{new Notification('Conquista',{body:'Tenés '+n+' aviso(s) nuevo(s)'})}catch(e){}}
+  }
+}
+function refreshTop(){
+  const me=DB.session;if(!me)return;
+  const u=DB.users[me],st=getStats(me);
+  $('meName').textContent=me;$('meDot').style.background=u.color;$('meLvl').textContent='Nv '+lvl(st.xp);
+  $('meStreak').textContent='🔥 '+curStreak(st);
+  const n=unread();$('badge').textContent=n;$('badge').style.display=n?'flex':'none';
+  const mine=(scores().find(s=>s.name===me)||{n:0}).n;
+  $('meScore').textContent=fmtArea(mine*CELL_M2);
+  const sn=unreadChat();$('sbadge').textContent=sn;$('sbadge').style.display=sn?'flex':'none';
+}
+function draw(){
+  cellLayer.clearLayers();
+  // agrupa celdas contiguas (misma fila, dueño, fuerza y escudo) en un solo rectángulo
+  const rows={},t=Date.now();
+  for(const k in DB.cells){
+    const c=DB.cells[k],p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
+    const key=c[0]+'|'+i+'|'+cellStr(c)+'|'+(c[1]+(c[5]||0)>t?1:0);
+    (rows[key]=rows[key]||[]).push(j);
+  }
+  for(const key in rows){
+    const [o,is,ss,sh]=key.split('|'),i=+is,str=+ss,js=rows[key].sort((x,y)=>x-y);
+    const col=(DB.users[o]||{}).color||'#888',mine=o===DB.session,shd=sh==='1';
+    const style={renderer,color:shd?'#fff':col,weight:shd?1.6:(mine?1:.5),dashArray:shd?'3 3':null,opacity:.9,fillColor:col,fillOpacity:Math.min(.87,.22+.13*str),interactive:false};
+    let a=js[0],p=a;
+    const flush=()=>L.rectangle([[i*DLAT,a*DLNG],[(i+1)*DLAT,(p+1)*DLNG]],style).addTo(cellLayer);
+    for(let n=1;n<js.length;n++){if(js[n]===p+1){p=js[n]}else{flush();a=p=js[n]}}
+    flush();
+  }
+  refreshTop();
+}
+function inspect(ll){
+  const c=DB.cells[Math.floor(ll.lat/DLAT)+':'+Math.floor(ll.lng/DLNG)];
+  let h;
+  if(!c)h='<b>Zona libre</b><br>Encerrala para conquistarla';
+  else{
+    const s=cellStr(c),sl=shieldLeft(c);
+    h='<b>'+c[0]+(c[0]===DB.session?' (vos)':'')+'</b><br>Fuerza '+'★'.repeat(s)+'☆'.repeat(MAX_STR-s)+' ('+s+'/'+MAX_STR+')'+
+      (sl>0?'<br>🛡 Escudo: '+fmtDur(sl):'')+'<br><small>Conquistada hace '+fmtDur(Date.now()-c[1])+'</small>';
+  }
+  L.popup().setLatLng(ll).setContent(h).openOn(map);
+}
+
+/* ============ GRABACIÓN DE RECORRIDO ============ */
+let rec=null;
+function setStatus(t){$('status').textContent=t}
+function toast(t,ms=4500){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',ms)}
+function ui(recording){$('rowStart').style.display=recording?'none':'flex';$('rowRec').style.display=recording?'flex':'none'}
+function startRec(type){
+  rec={type,pts:[],watch:null};ui(true);
+  if(type==='sim'){setStatus('Tocá el mapa para marcar tu recorrido. Volvé cerca del inicio para cerrar el lazo.')}
+  else{
+    if(!navigator.geolocation){toast('Este dispositivo no tiene GPS');return stopAll()}
+    setStatus('Esperando señal GPS…');
+    rec.watch=navigator.geolocation.watchPosition(onGps,e=>{toast('No se pudo obtener ubicación: '+e.message);if(!rec||!rec.pts.length)stopAll()},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  }
+}
+function stopAll(){
+  if(rec&&rec.watch!=null)navigator.geolocation.clearWatch(rec.watch);
+  rec=null;
+  [pathLine,startMarker].forEach(l=>l&&map&&map.removeLayer(l));pathLine=startMarker=null;
+  ui(false);setStatus('Elegí cómo querés jugar');
+}
+function dist(a,b){
+  const R=6371000,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r;
+  const x=Math.sin(dLa/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function pathLen(p){let s=0;for(let i=1;i<p.length;i++)s+=dist(p[i-1],p[i]);return s}
+function addPoint(lat,lng,t){
+  const pts=rec.pts,p=[lat,lng,t],col=DB.users[DB.session].color;
+  if(!pts.length){
+    pts.push(p);
+    startMarker=L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:3,fillColor:col,fillOpacity:1}).addTo(map);
+    pathLine=L.polyline([[lat,lng]],{color:col,weight:4}).addTo(map);
+    return true;
+  }
+  const last=pts[pts.length-1],d=dist(last,p);
+  if(rec.type==='gps'){
+    if(d<MIN_STEP)return false;
+    const dt=(t-last[2])/1000;
+    if(dt>0&&d/dt>MAX_SPEED){toast('⚠️ Vas muy rápido ('+(d/dt*3.6).toFixed(0)+' km/h). Ese tramo no cuenta.');return false}
+  }
+  pts.push(p);pathLine.addLatLng([lat,lng]);
+  if(pts.length>=4&&pathLen(pts)>=90&&dist(pts[0],p)<=CLOSE_DIST){finishLoop();return true}
+  setStatus('Recorrido: '+fmtDist(pathLen(pts))+' · '+pts.length+' puntos');
+  return true;
+}
+function onGps(pos){
+  if(!rec||rec.type!=='gps')return;
+  const c=pos.coords;
+  if(c.accuracy>50){setStatus('Señal débil (±'+Math.round(c.accuracy)+' m)…');return}
+  const ll=[c.latitude,c.longitude];
+  if(!meMarker)meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16]})}).addTo(map);
+  else meMarker.setLatLng(ll);
+  if(!rec.pts.length)map.setView(ll,18);
+  if(addPoint(ll[0],ll[1],pos.timestamp||Date.now()))map.panTo(ll,{animate:true});
+}
+function onMapClick(e){
+  if(rec){if(rec.type==='sim')addPoint(e.latlng.lat,e.latlng.lng,Date.now());return}
+  inspect(e.latlng);
+}
+$('btnGps').onclick=()=>startRec('gps');
+$('btnSim').onclick=()=>startRec('sim');
+$('btnCancel').onclick=stopAll;
+$('btnClose').onclick=()=>finishLoop();
+
+/* ============ CAPTURA DE TERRITORIO ============ */
+function inPoly(x,y,poly){
+  let c=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const yi=poly[i][0],xi=poly[i][1],yj=poly[j][0],xj=poly[j][1];
+    if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;
+  }
+  return c;
+}
+/* Reglas por celda dentro del lazo:
+   - libre            → es tuya (con escudo)
+   - tuya             → refuerzo +1 de fuerza (1 vez por día)
+   - ajena con escudo → bloqueada
+   - ajena fuerte     → pierde 1 de fuerza (daño)
+   - ajena fuerza 1   → cambia de dueño                                  */
+function capture(poly,owner,opt={}){
+  let minLa=1e9,maxLa=-1e9,minLo=1e9,maxLo=-1e9;
+  poly.forEach(p=>{minLa=Math.min(minLa,p[0]);maxLa=Math.max(maxLa,p[0]);minLo=Math.min(minLo,p[1]);maxLo=Math.max(maxLo,p[1])});
+  const R={inside:0,fresh:0,flipped:0,stolen:{},hits:0,blocked:0,reinforced:0,maxStr:0,ally:0},V={};
+  const t=Date.now(),today=Math.floor(t/DAY),sh=opt.noShield?0:shieldFor(owner);
+  const vic=n=>V[n]=V[n]||{f:0,h:0,b:0};
+  for(let i=Math.floor(minLa/DLAT);i<=Math.floor(maxLa/DLAT);i++)
+    for(let j=Math.floor(minLo/DLNG);j<=Math.floor(maxLo/DLNG);j++){
+      if(!inPoly((j+.5)*DLNG,(i+.5)*DLAT,poly))continue;
+      R.inside++;
+      const k=i+':'+j,cur=DB.cells[k];
+      if(!cur){DB.cells[k]=[owner,t,0,t,0,sh,0];R.fresh++;continue}
+      if(cur[0]===owner){
+        if(cur[6]!==today){cur[2]=Math.min((cur[2]||0)+1,MAX_STR-1);cur[4]=0;cur[6]=today;R.reinforced++}
+        R.maxStr=Math.max(R.maxStr,cellStr(cur));
+        continue;
+      }
+      if(sameTeam(owner,cur[0])){R.ally++;continue}
+      if(shieldLeft(cur)>0){R.blocked++;vic(cur[0]).b++;continue}
+      if(cellStr(cur)>1){cur[4]=(cur[4]||0)+1;R.hits++;vic(cur[0]).h++;continue}
+      R.stolen[cur[0]]=(R.stolen[cur[0]]||0)+1;vic(cur[0]).f++;DB.steals[owner+'>'+cur[0]]=(DB.steals[owner+'>'+cur[0]]||0)+1;
+      DB.cells[k]=[owner,t,0,t,0,sh,0];R.flipped++;
+    }
+  for(const v in V)notify(v,{type:'attack',by:owner,f:V[v].f,h:V[v].h,b:V[v].b});
+  save();
+  return R;
+}
+function finishLoop(){
+  if(!rec)return;
+  const pts=rec.pts.map(p=>[p[0],p[1]]);
+  if(pts.length<3){toast('Necesitás al menos 3 puntos para encerrar un área');return}
+  const walked=pathLen(rec.pts),st=getStats(DB.session);
+  const newDay=updStreak(st);                 // la racha cuenta antes de calcular el escudo
+  const before=scores(),lvl0=lvl(st.xp),tb=teamScores(),lb=leadersOf(DB.session);
+  const R=capture(pts,DB.session);
+  stopAll();
+  if(!R.inside){draw();toast('El lazo es muy chico: no encerró ninguna celda');return}
+  const parts=[],gain=R.fresh+R.flipped,sn=Object.entries(R.stolen);
+  if(gain)parts.push('🎉 +'+fmtArea(gain*CELL_M2));
+  if(sn.length)parts.push('Robaste '+sn.map(([n,c])=>fmtArea(c*CELL_M2)+' a '+n).join(', '));
+  if(R.hits)parts.push('⚔️ '+fmtArea(R.hits*CELL_M2)+' dañado (defensa fuerte)');
+  if(R.blocked)parts.push('🛡 '+fmtArea(R.blocked*CELL_M2)+' protegido por escudo');
+  if(R.reinforced)parts.push('💪 más fuerza en '+fmtArea(R.reinforced*CELL_M2));
+  if(R.ally)parts.push('🤝 '+fmtArea(R.ally*CELL_M2)+' son de tu equipo (no se roban)');
+  if(!parts.length)parts.push('Ese territorio ya es tuyo y ya lo reforzaste hoy');
+  toast(parts.join(' · '),7000);
+  // ranking
+  const ov=overtakeInfo(before);
+  if(ov.lead)queueCel('👑 ¡Sos el nuevo líder!','Tenés el territorio más grande del mes',true);
+  else if(ov.over.length)queueCel('🎉 ¡Superaste a '+ov.over.join(' y ')+'!','Subiste al puesto #'+ov.rank+' del ranking',true);
+  const tOv=teamOvertake(tb);
+  if(tOv.length)queueCel('🛡 ¡Tu equipo superó a '+tOv.join(' y ')+'!','Sigan sumando zonas entre todos',true);
+  const nk=leadersOf(DB.session).filter(x=>!lb.includes(x));
+  if(nk.length)queueCel('🏘️ ¡Sos el rey de '+nk.join(' y ')+'!','Nadie tiene más territorio que vos en el barrio',false);
+  // progreso: stats, racha, misiones, logros, nivel
+  const h=new Date().getHours(),night=h>=20||h<6;
+  st.loops++;st.dist+=walked;st.cells+=gain;st.stolen+=R.flipped;st.maxLoop=Math.max(st.maxLoop,R.inside);
+  if(night)st.night++;
+  if(R.maxStr>=MAX_STR)st.fort++;
+  if(ov.over.length)st.overtakes++;
+  if(ov.lead)st.leads++;
+  st.xp+=10+(R.flipped?10:0);
+  if(newDay&&[3,7,14,30].includes(st.streak))queueCel('🔥 ¡Racha de '+st.streak+' días!','Tus escudos ahora duran '+fmtDur(shieldFor(DB.session)),false);
+  updMissions(R,walked,night);
+  checkAch();
+  if(lvl(st.xp)>lvl0)queueCel('⭐ ¡Subiste al nivel '+lvl(st.xp)+'!','Seguí caminando para conquistar más',false);
+  save();draw();
+}
+function overtakeInfo(before){
+  const me=DB.session,after=scores(),N=l=>(l.find(x=>x.name===me)||{n:0}).n,bm=N(before),am=N(after);
+  const over=before.filter(x=>x.name!==me&&x.n>bm&&((after.find(y=>y.name===x.name)||{n:0}).n<am)).map(x=>x.name);
+  const lead=after.length>0&&after[0].name===me&&!(before.length&&before[0].name===me);
+  return {over,lead,rank:after.findIndex(x=>x.name===me)+1};
+}
+
+/* ============ CELEBRACIONES ============ */
+const celQ=[];let celBusy=false;
+function queueCel(t,s,big){celQ.push([t,s,big]);if(!celBusy)setTimeout(nextCel,600)}
+function nextCel(){const x=celQ.shift();if(!x){celBusy=false;return}celBusy=true;celebrate(x[0],x[1],x[2]);setTimeout(nextCel,3300)}
+function celebrate(title,sub,big){
+  $('bT').textContent=title;$('bS').textContent=sub||'';
+  const b=$('banner');b.classList.remove('show');void b.offsetWidth;b.classList.add('show');
+  navigator.vibrate&&navigator.vibrate([80,60,80,60,160]);
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784,1047].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=f;
+      g.gain.setValueAtTime(0,ac.currentTime+i*.12);g.gain.linearRampToValueAtTime(.18,ac.currentTime+i*.12+.02);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+i*.12+.35);
+      o.connect(g).connect(ac.destination);o.start(ac.currentTime+i*.12);o.stop(ac.currentTime+i*.12+.4)});
+  }catch(e){}
+  confetti(big?220:90);
+}
+function confetti(n){
+  const cv=$('fx'),cx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;cv.style.display='block';
+  const cols=['#e11d48','#2563eb','#16a34a','#f59e0b','#7c3aed','#06b6d4'];
+  const ps=Array.from({length:n},()=>({x:innerWidth/2+(Math.random()-.5)*80,y:innerHeight*.4,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,r:Math.random()*6+3,c:cols[Math.random()*cols.length|0],a:Math.random()*6,va:(Math.random()-.5)*.4}));
+  const t0=performance.now();
+  (function f(t){
+    const e=t-t0;cx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.vy+=.35;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.a);cx.globalAlpha=Math.max(0,1-e/3000);cx.fillStyle=p.c;cx.fillRect(-p.r,-p.r/2,p.r*2,p.r);cx.restore()});
+    if(e<3000)requestAnimationFrame(f);else{cx.clearRect(0,0,cv.width,cv.height);cv.style.display='none'}
+  })(t0);
+}
+
+/* ============ PANELES ============ */
+let chatOpen=false;
+function sheet(html){chatOpen=false;$('sheetIn').innerHTML=html;$('sheet').style.display='flex'}
+const closeSheet=()=>{chatOpen=false;$('sheet').style.display='none'};
+$('sheet').onclick=e=>{if(e.target.id==='sheet')closeSheet()};
+$('chipMe').onclick=()=>openProfile('m');
+$('btnNot').onclick=()=>openNotifs();
+
+/* --- Ranking (ciudad / equipos / barrios) --- */
+$('btnRank').onclick=()=>openRank('c');
+let rtab='c';
+function openRank(tab,bi){
+  rtab=tab||rtab;
+  const me=DB.session,n=new Date(),end=new Date(n.getFullYear(),n.getMonth()+1,1),days=Math.ceil((end-n)/DAY);
+  let h='<h2>🏆 Ranking de '+DB.season+'</h2><div class="mut" style="font-size:13px">Termina en '+days+' día'+(days===1?'':'s')+'. Gana quien tenga más territorio.</div>';
+  h+='<div class="ptabs" style="margin-top:10px">'+[['c','🌆 Ciudad'],['e','🛡 Equipos'],['b','🏘️ Barrios']].map(t=>'<button data-a="rank" data-t="'+t[0]+'" class="'+(rtab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  if(rtab==='c'){
+    const sc=scores();
+    h+=sc.length?sc.map((s,i)=>'<div class="rk"><b>'+(i+1)+'</b><span class="dot" style="background:'+colorOf(s.name)+'"></span><span class="n">'+tagOf(s.name)+esc(s.name)+(s.name===me?' (vos)':'')+'</span><span class="s">'+fmtArea(s.n*CELL_M2)+'</span></div>').join(''):'<p class="mut">Todavía nadie conquistó nada. ¡Sé el primero!</p>';
+    if(DB.history.length)h+='<h3>Temporadas anteriores</h3>'+DB.history.map(x=>'<div class="rk"><span class="n">'+esc(x.season)+'</span><span class="s">🥇 '+esc(x.winner)+' · '+fmtArea(x.cells*CELL_M2)+'</span></div>').join('');
+  }else if(rtab==='e'){
+    const tm={};teamScores().forEach(x=>tm[x.name]=x.n);
+    const all=Object.values(DB.teams).map(t=>({t,n:tm[t.name]||0})).sort((a,b)=>b.n-a.n);
+    h+=all.length?all.map((x,i)=>'<div class="rk"><b>'+(i+1)+'</b><span class="n">'+x.t.emoji+' '+esc(x.t.name)+(x.t.name===teamOf(me)?' (tu equipo)':'')+'<br><small class="mut">'+x.t.members.length+' miembro'+(x.t.members.length>1?'s':'')+'</small></span><span class="s">'+fmtArea(x.n*CELL_M2)+'</span></div>').join(''):'<p class="mut">Todavía no hay equipos. Creá uno desde 👥 Social.</p>';
+  }else{
+    const S=barrioStats();
+    if(bi!==undefined&&S[bi]){
+      const x=S[bi];
+      h+='<div style="margin:10px 0">'+btn('rank','← Barrios',{t:'b'})+' '+btn('barrio','📍 Ver en el mapa',{b:bi})+'</div><h3>'+esc(x.n)+'</h3>';
+      h+=x.rank.length?x.rank.map((e,i)=>'<div class="rk"><b>'+(i+1)+'</b><span class="dot" style="background:'+colorOf(e[0])+'"></span><span class="n">'+tagOf(e[0])+esc(e[0])+(e[0]===me?' (vos)':'')+'</span><span class="s">'+fmtArea(e[1]*CELL_M2)+' · '+Math.round(e[1]/x.sum*100)+'%</span></div>').join(''):'<p class="mut">Nadie conquistó este barrio todavía.</p>';
+    }else{
+      h+='<p class="mut" style="font-size:13px">Tocá un barrio para ver su ranking. El 👑 es el rey del barrio.</p>';
+      h+=S.map((x,i)=>'<div class="rk" data-a="rank" data-t="b" data-b="'+i+'"><span class="n">🏘️ '+esc(x.n)+'<br><small class="mut">'+(x.leader?'👑 '+tagOf(x.leader)+esc(x.leader):'Sin dueño todavía')+'</small></span><span class="s">'+fmtArea(x.sum*CELL_M2)+(x.tot[me]?'<br>vos: '+fmtArea(x.tot[me]*CELL_M2):'')+'</span></div>').join('');
+    }
+  }
+  sheet(h);
+}
+
+/* --- Avisos --- */
+function openNotifs(){
+  const me=DB.session,L=DB.notifs[me]||[];
+  let h='<h2>🔔 Avisos</h2>';
+  if(window.Notification&&Notification.permission==='default')h+='<button class="primary" id="nPerm" style="margin:8px 0">Activar avisos del navegador</button>';
+  h+=L.length?L.map((n,i)=>{
+    let x='<div class="rk" style="flex-wrap:wrap"><span class="n">'+notifText(n)+'</span><span class="s">'+fmtAgo(n.ts)+'</span>';
+    if(!n.type||n.type==='attack'){
+      x+='<div class="reacts">'+(n.re?'<small class="mut">Respondiste '+n.re+'</small>':REACTS.map((r,ri)=>btn('react','<span title="'+esc(r.t)+'">'+r.e+'</span>',{u:n.by,e:ri,n:i})).join(''))+btn('show','🗺️ Sus zonas',{u:n.by})+btn('dm','💬',{u:n.by})+'</div>';
+    }
+    return x+'</div>';
+  }).join(''):'<p class="mut">Sin avisos todavía. Cuando alguien ataque tu territorio, te enterás acá y podés responderle con una reacción.</p>';
+  sheet(h);
+  L.forEach(n=>n.read=true);save();refreshTop();
+  const b=$('nPerm');if(b)b.onclick=()=>{Notification.requestPermission().then(()=>openNotifs())};
+}
+
+/* --- Perfil: misiones / logros / stats --- */
+let ptab='m';
+function openProfile(tab){
+  ptab=tab||ptab;
+  const me=DB.session,st=getStats(me),u=DB.users[me],L=lvl(st.xp),cur=st.xp-(L-1)*XP_LEVEL;
+  const A=DB.ach[me]||{};
+  let h='<div class="prof"><span class="dot" style="background:'+u.color+';width:38px;height:38px"></span><div style="flex:1"><b style="font-size:18px">'+me+'</b><div class="mut" style="font-size:13px">Nivel '+L+' · '+st.xp+' XP</div><div class="bar"><i style="width:'+(cur/XP_LEVEL*100)+'%"></i></div></div></div>';
+  h+='<div class="kv"><div>🔥<b>'+curStreak(st)+'</b><small>días de racha</small></div><div>🛡<b>'+fmtDur(shieldFor(me))+'</b><small>escudo por zona</small></div><div>🏅<b>'+Object.keys(A).length+'/'+ACH.length+'</b><small>logros</small></div></div>';
+  h+='<div class="ptabs">'+[['m','🎯 Misiones'],['a','🏅 Logros'],['s','📊 Stats']].map(t=>'<button data-tab="'+t[0]+'" class="'+(ptab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  if(ptab==='m'){
+    const m=ensureMissions(me),d=8-(new Date().getDay()||7);
+    h+=m.list.map(x=>'<div class="mi'+(x.done?' done':'')+'"><div>'+(x.done?'✅ ':'🎯 ')+MK[x.k].txt(x.g)+'</div><div class="bar"><i style="width:'+Math.round(x.p/x.g*100)+'%"></i></div><small class="mut">'+(x.done?'Completada · +100 XP':MK[x.k].fmt(x.p)+' / '+MK[x.k].fmt(x.g)+' · +100 XP')+'</small></div>').join('');
+    h+='<p class="mut" style="font-size:12px">Las misiones se renuevan el lunes (en '+d+' día'+(d>1?'s':'')+').</p>';
+  }else if(ptab==='a'){
+    h+='<div class="agrid">'+ACH.map(a=>'<div class="ac'+(A[a.id]?' on':'')+'"><div class="i">'+a.i+'</div><b>'+a.n+'</b><small>'+a.d+'</small></div>').join('')+'</div>';
+  }else{
+    const rows=[['Lazos cerrados',st.loops],['Distancia caminada',fmtDist(st.dist)],['Territorio conquistado (total)',fmtArea(st.cells*CELL_M2)],['Territorio robado (total)',fmtArea(st.stolen*CELL_M2)],['Lazo más grande',fmtArea(st.maxLoop*CELL_M2)],['Mejor racha',st.best+' días'],['Caminatas nocturnas',st.night]];
+    h+=rows.map(r=>'<div class="rk"><span class="n">'+r[0]+'</span><b style="width:auto">'+r[1]+'</b></div>').join('');
+  }
+  sheet(h);
+  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openProfile(b.dataset.tab));
+}
+
+/* --- Menú --- */
+function timeTravel(ms){
+  for(const k in DB.cells){const c=DB.cells[k],since=c[3]||c[1];c[1]-=ms;c[3]=since-ms;if(c[6])c[6]-=Math.round(ms/DAY)}
+  if(ms>=DAY)for(const u in DB.stats){const s=DB.stats[u];if(s.last){const d=new Date(s.last+'T12:00:00');d.setDate(d.getDate()-Math.round(ms/DAY));s.last=dayKey(d)}}
+  save();draw();
+}
+function rivalPoly(c,r){const p=[];for(let a=0;a<360;a+=30){const t=a*Math.PI/180;p.push([c.lat+r*Math.sin(t)*(0.8+Math.random()*.4),c.lng+r*Math.cos(t)*(0.8+Math.random()*.4)*1.1])}return p}
+function ensureRival(){
+  if(!DB.users.rival)DB.users.rival={h:'x',color:'#f97316'};
+  if(!DB.teams['Los Rivales'])DB.teams['Los Rivales']={name:'Los Rivales',emoji:'😈',owner:'rival',members:['rival'],created:Date.now()};
+  DB.users.rival.team='Los Rivales';
+}
+$('btnMenu').onclick=()=>{
+  const opts=(arr,cur)=>arr.map(o=>'<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
+  sheet('<h2>Menú</h2><h3>Unidades</h3><div class="units"><label>Área<select id="uArea">'+
+   opts([['auto','Automática'],['m2','Metros² (m²)'],['ha','Hectáreas (ha)'],['km2','Kilómetros² (km²)'],['acre','Acres']],PREF.area)+
+   '</select></label><label>Distancia<select id="uDist">'+
+   opts([['auto','Automática'],['m','Metros (m)'],['km','Kilómetros (km)'],['mi','Millas (mi)']],PREF.dist)+
+   '</select></label></div><h3>Juego</h3><div class="menu">'+
+   '<button id="mBar">🏘️ Nombres de barrios en el mapa: '+(PREF.barrios===false?'No':'Sí')+'</button>'+
+   '<button id="mRules">ℹ️ Reglas: escudo, fuerza, racha<small>Cómo funciona cada mecánica</small></button></div>'+
+   '<h3>Modo prueba</h3><div class="menu">'+
+   '<button id="mRival">🤖 El rival conquista una zona<small>Aparece una zona del usuario "rival" cerca del centro del mapa, sin escudo</small></button>'+
+   '<button id="mAtk">🤖 El rival te ataca<small>Ataca una de tus zonas: verás el escudo, el daño y el aviso 🔔</small></button>'+
+   '<button id="mTaunt">🤖 El rival te provoca<small>Te manda una reacción y un mensaje directo</small></button>'+
+   '<button id="mT3">⏩ Avanzar el tiempo +3 horas<small>Para ver vencer los escudos</small></button>'+
+   '<button id="mT24">⏩ Avanzar el tiempo +1 día<small>Sube la fuerza de las zonas y permite continuar la racha</small></button></div>'+
+   '<h3>Cuenta</h3><div class="menu">'+
+   '<button id="mLoc">📍 Ir a mi ubicación</button>'+
+   '<button id="mReset">🗑️ Borrar todo el territorio<small>Reinicia el mapa (no borra usuarios ni progreso)</small></button>'+
+   '<button id="mOut">Cerrar sesión<small>Después podés crear otro usuario y probar atacar al anterior</small></button></div>');
+  $('uArea').onchange=e=>{PREF.area=e.target.value;savePref();draw()};
+  $('uDist').onchange=e=>{PREF.dist=e.target.value;savePref()};
+  $('mRules').onclick=()=>sheet('<h2>ℹ️ Reglas</h2><div class="rules">'+
+    '<p>🛡 <b>Escudo.</b> Cada zona que conquistás queda protegida '+fmtDur(SHIELD_BASE)+' (más 30 min por cada día de racha, hasta +5 h). Nadie puede robarla mientras dure. Se ve con borde blanco punteado.</p>'+
+    '<p>💪 <b>Fuerza (1 a '+MAX_STR+').</b> Sube 1 por cada día que conservás la zona, y +1 cuando volvés a recorrerla (una vez por día). Cuanto más fuerte, más intenso el color. Tocá una zona en el mapa para ver su fuerza.</p>'+
+    '<p>⚔️ <b>Ataques.</b> Un ataque a una zona fuerte le baja 1 de fuerza. Recién cuando llega a 1, la zona cambia de dueño.</p>'+
+    '<p>🔔 <b>Avisos.</b> Si te atacan, te enterás en la campana. (En la app real serán notificaciones push.)</p>'+
+    '<p>🔥 <b>Racha.</b> Cerrá al menos un lazo por día. Si faltás un día, se reinicia.</p>'+
+    '<p>🎯 <b>Misiones y 🏅 logros</b> dan XP para subir de nivel. Las misiones se renuevan cada lunes.</p>'+
+    '<p>🛡 <b>Equipos.</b> Los territorios de todos los miembros se suman en el ranking de equipos (máx. '+MAX_TEAM+'). Los compañeros <b>no pueden robarse zonas</b> entre sí.</p>'+
+    '<p>👥 <b>Amigos y rivales.</b> Seguí jugadores para ver sus zonas en el mapa. Tus rivales aparecen solos cuando se roban territorio.</p>'+
+    '<p>🏘️ <b>Barrios.</b> Cada barrio tiene su propio ranking y un rey. Si lo desbloqueás, ¡celebración!</p>'+
+    '<p>💬 <b>Chat y reacciones.</b> Respondé a quien te ataque desde la campana, o escribí en el chat de la ciudad, del equipo o directo.</p></div>');
+  $('mBar').onclick=()=>{PREF.barrios=(PREF.barrios===false);savePref();drawBarrios();closeSheet()};
+  $('mTaunt').onclick=()=>{
+    ensureRival();const r=REACTS[Math.random()*REACTS.length|0];
+    notify(DB.session,{type:'react',by:'rival',e:r.e,t:r.t});
+    pushMsg(dmKey(DB.session,'rival'),BOT[Math.random()*BOT.length|0],'rival');
+    refreshTop();closeSheet();toast('🤖 El rival te mandó una reacción 🔔 y un mensaje 👥');
+  };
+  $('mRival').onclick=()=>{
+    ensureRival();const R=capture(rivalPoly(map.getCenter(),0.0008),'rival',{noShield:true});
+    draw();closeSheet();toast('🤖 "rival" conquistó '+fmtArea((R.fresh+R.flipped)*CELL_M2)+'. Encerralas para robárselas.');
+  };
+  $('mAtk').onclick=()=>{
+    const mine=Object.keys(DB.cells).filter(k=>DB.cells[k][0]===DB.session);
+    if(!mine.length){closeSheet();return toast('Primero conquistá alguna zona para que puedan atacarte')}
+    ensureRival();const k=mine[Math.random()*mine.length|0],p=k.split(':');
+    const c={lat:(+p[0]+.5)*DLAT,lng:(+p[1]+.5)*DLNG};
+    const R=capture(rivalPoly(c,0.0007),'rival');
+    draw();closeSheet();
+    toast('🤖 El rival te atacó: '+(R.flipped?'te robó '+fmtArea(R.flipped*CELL_M2)+'. ':'')+(R.hits?fmtArea(R.hits*CELL_M2)+' dañado. ':'')+(R.blocked?'🛡 tu escudo frenó '+fmtArea(R.blocked*CELL_M2)+'. ':'')+'Mirá la campana 🔔',7000);
+  };
+  $('mT3').onclick=()=>{timeTravel(3*HOUR);closeSheet();toast('⏩ Pasaron 3 horas')};
+  $('mT24').onclick=()=>{timeTravel(DAY);closeSheet();toast('⏩ Pasó 1 día')};
+  $('mLoc').onclick=()=>{navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],17);closeSheet()},()=>toast('No se pudo obtener la ubicación'))};
+  $('mReset').onclick=()=>{if(confirm('¿Borrar todo el territorio?')){DB.cells={};save();draw();closeSheet()}};
+  $('mOut').onclick=()=>{closeSheet();logout()};
+};
+
+/* ============ SOCIAL ============ */
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const teamOf=u=>(DB.users[u]||{}).team||null;
+const sameTeam=(a,b)=>{const t=teamOf(a);return !!t&&t===teamOf(b)};
+const tagOf=u=>{const t=teamOf(u);return t&&DB.teams[t]?DB.teams[t].emoji+' ':''};
+const colorOf=u=>(DB.users[u]||{}).color||'#888';
+const btn=(a,label,data={})=>'<button class="sbtn" data-a="'+a+'"'+Object.entries(data).map(([k,v])=>' data-'+k+'="'+esc(v)+'"').join('')+'>'+label+'</button>';
+function scoreMap(){const c={};for(const k in DB.cells){const o=DB.cells[k][0];c[o]=(c[o]||0)+1}return c}
+function teamScores(){
+  const c={};for(const k in DB.cells){const t=teamOf(DB.cells[k][0]);if(t)c[t]=(c[t]||0)+1}
+  return Object.entries(c).map(([name,n])=>({name,n})).sort((a,b)=>b.n-a.n);
+}
+function teamOvertake(before){
+  const mt=teamOf(DB.session);if(!mt)return [];
+  const after=teamScores(),N=l=>(l.find(x=>x.name===mt)||{n:0}).n,bm=N(before),am=N(after);
+  return before.filter(x=>x.name!==mt&&x.n>bm&&((after.find(y=>y.name===x.name)||{n:0}).n<am)).map(x=>x.name);
+}
+
+/* --- Barrios --- */
+const BC={};
+function barrioOf(i,j){
+  const k=i+':'+j;if(BC[k]!==undefined)return BC[k];
+  const la=(i+.5)*DLAT,lo=(j+.5)*DLNG,cs=Math.cos(REF_LAT*Math.PI/180);
+  let b=0,bd=1e9;
+  BARRIOS.forEach((x,n)=>{const d=(x.c[0]-la)**2+((x.c[1]-lo)*cs)**2;if(d<bd){bd=d;b=n}});
+  return BC[k]=b;
+}
+function barrioStats(){
+  const S=BARRIOS.map(b=>({n:b.n,c:b.c,tot:{},sum:0,leader:null,rank:[]}));
+  for(const k in DB.cells){
+    const p=k.indexOf(':'),s=S[barrioOf(+k.slice(0,p),+k.slice(p+1))],o=DB.cells[k][0];
+    s.tot[o]=(s.tot[o]||0)+1;s.sum++;
+  }
+  S.forEach(s=>{s.rank=Object.entries(s.tot).sort((a,b)=>b[1]-a[1]);s.leader=s.rank.length?s.rank[0][0]:null});
+  return S;
+}
+const leadersOf=u=>barrioStats().filter(s=>s.leader===u).map(s=>s.n);
+let barrioLayer;
+function drawBarrios(){
+  if(!map)return;
+  if(!barrioLayer)barrioLayer=L.layerGroup();
+  barrioLayer.clearLayers();
+  if(PREF.barrios===false){map.removeLayer(barrioLayer);return}
+  barrioLayer.addTo(map);
+  BARRIOS.forEach(b=>L.marker(b.c,{interactive:false,icon:L.divIcon({className:'',html:'<div class="blabel">'+esc(b.n)+'</div>',iconSize:[90,16],iconAnchor:[45,8]})}).addTo(barrioLayer));
+}
+function showBarrioMap(i){closeSheet();map.setView(BARRIOS[i].c,16);toast('📍 Barrio '+BARRIOS[i].n)}
+
+/* --- Ver zonas de un jugador --- */
+function showPlayer(name){
+  let a=1e9,b=-1e9,c=1e9,d=-1e9,n=0;
+  for(const k in DB.cells){
+    if(DB.cells[k][0]!==name)continue;
+    const p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
+    a=Math.min(a,i);b=Math.max(b,i);c=Math.min(c,j);d=Math.max(d,j);n++;
+  }
+  closeSheet();
+  if(!n)return toast(name+' todavía no tiene zonas');
+  const bounds=[[a*DLAT,c*DLNG],[(b+1)*DLAT,(d+1)*DLNG]];
+  map.fitBounds(bounds,{maxZoom:17,padding:[50,50]});
+  const hl=L.rectangle(bounds,{color:colorOf(name),weight:3,dashArray:'6 6',fill:false,interactive:false}).addTo(map);
+  setTimeout(()=>map.removeLayer(hl),5000);
+  toast('📍 Zonas de '+name+': '+fmtArea(n*CELL_M2));
+}
+
+/* --- Equipos --- */
+function afterSocial(){checkAch();save();refreshTop()}
+function createTeam(name,emoji){
+  name=(name||'').trim();const me=DB.session;
+  if(!/^[A-Za-z0-9 _-]{3,16}$/.test(name))return toast('Nombre del equipo: 3 a 16 caracteres (letras, números, espacios, _ -)');
+  if(Object.keys(DB.teams).some(t=>t.toLowerCase()===name.toLowerCase()))return toast('Ya existe un equipo con ese nombre');
+  DB.teams[name]={name,emoji:emoji||'🦅',owner:me,members:[me],created:Date.now()};
+  DB.users[me].team=name;afterSocial();openHub('t');toast('🛡 Creaste el equipo '+name);
+}
+function joinTeam(t){
+  const me=DB.session,T=DB.teams[t];
+  if(!T||teamOf(me))return;
+  if(T.members.length>=MAX_TEAM)return toast('Ese equipo está completo');
+  T.members.forEach(m=>notify(m,{type:'join',by:me}));
+  T.members.push(me);DB.users[me].team=t;
+  afterSocial();openHub('t');toast('🛡 Te uniste a '+t);
+}
+function leaveTeam(){
+  const me=DB.session,t=teamOf(me),T=DB.teams[t];if(!T)return;
+  if(!confirm('¿Salir del equipo '+t+'?'))return;
+  T.members=T.members.filter(m=>m!==me);DB.users[me].team=null;
+  if(!T.members.length)delete DB.teams[t];else if(T.owner===me)T.owner=T.members[0];
+  afterSocial();openHub('t');
+}
+function callWalk(){
+  const me=DB.session,t=teamOf(me);if(!t)return;
+  const x=prompt('¿Dónde y cuándo? Ej: Plaza San Martín, sábado 18 h');
+  if(!x||!x.trim())return;
+  const txt=x.trim().slice(0,100);
+  pushMsg('team:'+t,'📣 Caminata en grupo: '+txt,me);
+  DB.teams[t].members.filter(m=>m!==me).forEach(m=>notify(m,{type:'walk',by:me,text:txt}));
+  save();toast('📣 Convocatoria enviada al equipo');openChat('team:'+t);
+}
+
+/* --- Amigos / rivales --- */
+function follow(u){
+  const me=DB.session;u=(u||'').trim().toLowerCase();
+  if(!u)return;
+  if(u===me)return toast('Ese sos vos 😄');
+  if(!DB.users[u])return toast('No existe el jugador "'+u+'"');
+  const F=DB.friends[me]=DB.friends[me]||[];
+  if(F.includes(u))return toast('Ya lo seguís');
+  F.push(u);notify(u,{type:'follow',by:me});afterSocial();openHub('f');
+}
+function unfollow(u){const me=DB.session;DB.friends[me]=(DB.friends[me]||[]).filter(x=>x!==u);save();openHub('f')}
+function rivalsList(me){
+  const names=new Set();
+  for(const k in DB.steals){const [a,b]=k.split('>');if(a===me)names.add(b);if(b===me)names.add(a)}
+  return [...names].map(n=>({n,lost:DB.steals[n+'>'+me]||0,won:DB.steals[me+'>'+n]||0})).sort((x,y)=>(y.lost+y.won)-(x.lost+x.won));
+}
+function sendReact(to,ei,ni,back){
+  const r=REACTS[ei],me=DB.session;
+  notify(to,{type:'react',by:me,e:r.e,t:r.t});
+  const L=DB.notifs[me];if(ni>=0&&L&&L[ni])L[ni].re=r.e;
+  const st=getStats(me);st.msgs=(st.msgs||0)+1;
+  if(to==='rival')setTimeout(()=>{ensureRival();notify(me,{type:'react',by:'rival',e:'😏',t:BOT[Math.random()*BOT.length|0]});refreshTop()},1500);
+  checkAch();save();toast(r.e+' Enviaste una reacción a '+to);
+  if(back==='n')openNotifs();else openHub('r');
+}
+
+/* --- Chat --- */
+let chatKey=null;
+const dmKey=(a,b)=>'dm:'+[a,b].sort().join('|');
+const isMyChat=(k,me)=>k==='city'||(k.startsWith('dm:')?k.slice(3).split('|').includes(me):k==='team:'+teamOf(me));
+function pushMsg(key,text,from){
+  const L=DB.chats[key]=DB.chats[key]||[];
+  L.push({from,text,ts:Date.now()});DB.chats[key]=L.slice(-80);save();
+}
+function unreadK(k,me){return (DB.chats[k]||[]).filter(m=>m.from!==me&&m.ts>((DB.seen[me]||{})[k]||0)).length}
+function unreadChat(){
+  const me=DB.session;if(!me)return 0;let n=0;
+  for(const k in DB.chats){if(k!=='city'&&isMyChat(k,me))n+=unreadK(k,me)}
+  return n;
+}
+function chatTitle(k){
+  if(k==='city')return '🌆 Chat de la ciudad';
+  if(k.startsWith('team:')){const t=k.slice(5);return (DB.teams[t]?DB.teams[t].emoji+' ':'')+'Equipo '+esc(t)}
+  return '💬 '+esc(k.slice(3).split('|').find(x=>x!==DB.session)||'');
+}
+function openChat(key){
+  const me=DB.session;
+  if(!isMyChat(key,me))return toast('No tenés acceso a ese chat');
+  chatKey=key;const L=DB.chats[key]||[];
+  (DB.seen[me]=DB.seen[me]||{})[key]=Date.now();save();refreshTop();
+  sheet(btn('hub','← Volver',{t:'c'})+' <b>'+chatTitle(key)+'</b>'+
+    '<div class="chatbox" id="cbox">'+(L.length?L.map(m=>'<div class="msg'+(m.from===me?' me':'')+'"><small>'+esc(m.from)+' · '+fmtAgo(m.ts)+'</small>'+esc(m.text)+'</div>').join(''):'<span class="mut" style="font-size:13px">Todavía no hay mensajes. ¡Rompé el hielo!</span>')+'</div>'+
+    '<div class="reacts">'+REACTS.map((r,i)=>btn('quick',r.e,{n:i})).join('')+'</div>'+
+    '<div class="sendrow" style="margin-top:8px"><input id="cin" maxlength="140" placeholder="Escribí un mensaje…" autocomplete="off"><button class="primary" id="cgo">Enviar</button></div>');
+  chatOpen=true;
+  const bx=$('cbox');bx.scrollTop=bx.scrollHeight;
+  $('cgo').onclick=()=>sendText($('cin').value);
+  $('cin').onkeydown=e=>{if(e.key==='Enter')sendText($('cin').value)};
+}
+function sendText(text){
+  text=(text||'').trim().slice(0,140);if(!text||!chatKey)return;
+  const me=DB.session,key=chatKey;
+  pushMsg(key,text,me);
+  if(key.startsWith('dm:')){
+    const st=getStats(me);st.msgs=(st.msgs||0)+1;
+    if(key.slice(3).split('|').includes('rival'))setTimeout(()=>{
+      ensureRival();pushMsg(key,BOT[Math.random()*BOT.length|0],'rival');
+      if(chatOpen&&chatKey===key)openChat(key);else refreshTop();
+    },1400);
+  }
+  checkAch();save();openChat(key);
+}
+
+/* --- Panel social --- */
+let htab='t';
+function person(u,sm,acts,extra){
+  const st=getStats(u);
+  return '<div class="ppl"><span class="dot" style="background:'+colorOf(u)+'"></span><div class="n"><b>'+esc(u)+'</b> '+tagOf(u)+'<br><small class="mut">Nv '+lvl(st.xp)+' · 🔥 '+curStreak(st)+' · '+fmtArea((sm[u]||0)*CELL_M2)+(extra||'')+'</small></div><div class="acts">'+acts+'</div></div>';
+}
+function teamPanel(sm){
+  const me=DB.session,t=teamOf(me);
+  if(!t||!DB.teams[t]){
+    const tm={};teamScores().forEach(x=>tm[x.name]=x.n);
+    let h='<p class="mut" style="font-size:14px">Los territorios de tu equipo se suman en el ranking de equipos y los compañeros no se pueden robar zonas entre sí.</p>';
+    h+='<div class="sendrow"><select id="temo" class="sel">'+TEAM_EMOJIS.map(e=>'<option>'+e+'</option>').join('')+'</select><input id="tname" maxlength="16" placeholder="Nombre del equipo"><button class="primary" data-a="create">Crear</button></div>';
+    const all=Object.values(DB.teams).sort((a,b)=>(tm[b.name]||0)-(tm[a.name]||0));
+    h+='<h3>Equipos existentes</h3>'+(all.length?all.map(x=>'<div class="ppl"><div class="n"><b>'+x.emoji+' '+esc(x.name)+'</b><br><small class="mut">'+x.members.length+'/'+MAX_TEAM+' miembros · '+fmtArea((tm[x.name]||0)*CELL_M2)+'</small></div>'+(x.members.length<MAX_TEAM?btn('join','Unirme',{t:x.name}):'<small class="mut">Completo</small>')+'</div>').join(''):'<p class="mut">Todavía no hay equipos. ¡Creá el primero!</p>');
+    return h;
+  }
+  const T=DB.teams[t],ts=teamScores(),rank=ts.findIndex(x=>x.name===t)+1,tot=(ts.find(x=>x.name===t)||{n:0}).n;
+  let h='<div class="prof"><span style="font-size:34px">'+T.emoji+'</span><div style="flex:1"><b style="font-size:18px">'+esc(t)+'</b><div class="mut" style="font-size:13px">'+T.members.length+'/'+MAX_TEAM+' miembros · '+fmtArea(tot*CELL_M2)+(rank?' · puesto #'+rank:'')+'</div></div></div>';
+  h+='<div class="row"><button data-a="chat" data-k="team:'+esc(t)+'">💬 Chat del equipo</button><button data-a="walk">📣 Convocar caminata</button></div>';
+  h+='<h3>Miembros</h3>'+T.members.slice().sort((a,b)=>(sm[b]||0)-(sm[a]||0)).map(u=>{
+    const n=sm[u]||0,pc=tot?Math.round(n/tot*100):0;
+    return '<div class="ppl"><span class="dot" style="background:'+colorOf(u)+'"></span><div class="n"><b>'+esc(u)+'</b>'+(u===T.owner?' 👑':'')+(u===me?' (vos)':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div><small class="mut">'+fmtArea(n*CELL_M2)+' · '+pc+'% del equipo</small></div>'+(u!==me?btn('dm','💬',{u}):'')+'</div>';
+  }).join('');
+  return h+'<button class="sbtn" data-a="leave" style="margin-top:14px;color:#dc2626">Salir del equipo</button>';
+}
+function friendsPanel(sm){
+  const me=DB.session,F=DB.friends[me]||[];
+  let h='<div class="sendrow"><input id="fname" placeholder="Nombre de usuario a seguir" autocapitalize="none" autocomplete="off"><button class="primary" data-a="follow">Seguir</button></div>';
+  h+='<h3>Siguiendo ('+F.length+')</h3>'+(F.length?F.map(u=>person(u,sm,btn('show','🗺️ Zonas',{u})+btn('dm','💬',{u})+btn('unfollow','✖',{u}),(DB.friends[u]||[]).includes(me)?' · te sigue':'')).join(''):'<p class="mut" style="font-size:14px">Todavía no seguís a nadie. Escribí un usuario arriba o elegí uno sugerido.</p>');
+  const sug=Object.keys(DB.users).filter(u=>u!==me&&!F.includes(u)).sort((a,b)=>(sm[b]||0)-(sm[a]||0)).slice(0,5);
+  if(sug.length)h+='<h3>Sugeridos</h3>'+sug.map(u=>person(u,sm,btn('follow','➕ Seguir',{u}))).join('');
+  return h;
+}
+function rivalsPanel(sm){
+  const me=DB.session,R=rivalsList(me),F=DB.friends[me]||[];
+  if(!R.length)return '<p class="mut" style="font-size:14px">Todavía no tenés rivales. Se arman solos cuando alguien te roba territorio (o vos a él). Tip: en ☰ → Modo prueba, usá "El rival te ataca".</p>';
+  const nem=R.slice().sort((a,b)=>b.lost-a.lost)[0];
+  return R.map(x=>person(x.n,sm,btn('show','🗺️',{u:x.n})+btn('dm','💬',{u:x.n})+btn('taunt','🤡',{u:x.n})+(F.includes(x.n)?'':btn('follow','➕',{u:x.n})),'<br>Te robó '+fmtArea(x.lost*CELL_M2)+' · Le robaste '+fmtArea(x.won*CELL_M2)+(nem.lost>0&&x.n===nem.n?' · 😈 tu némesis':''))).join('');
+}
+function chatPanel(){
+  const me=DB.session,t=teamOf(me);
+  const row=(k,label,prev)=>{const u=unreadK(k,me);return '<div class="ppl" data-a="chat" data-k="'+esc(k)+'"><div class="n"><b>'+label+'</b><br><small class="mut">'+prev+'</small></div>'+(u?'<span class="dotn">'+u+'</span>':'')+'</div>'};
+  const last=k=>{const L=DB.chats[k]||[],m=L[L.length-1];return m?esc(m.from+': '+m.text.slice(0,40)):'Sin mensajes'};
+  let h=row('city','🌆 Chat de la ciudad',last('city'));
+  if(t&&DB.teams[t])h+=row('team:'+t,DB.teams[t].emoji+' Chat del equipo',last('team:'+t));
+  const dms=Object.keys(DB.chats).filter(k=>k.startsWith('dm:')&&isMyChat(k,me)).sort((a,b)=>DB.chats[b][DB.chats[b].length-1].ts-DB.chats[a][DB.chats[a].length-1].ts);
+  h+='<h3>Mensajes directos</h3>'+(dms.length?dms.map(k=>row(k,chatTitle(k),last(k))).join(''):'<p class="mut" style="font-size:14px">Tocá 💬 en un amigo, rival o compañero para escribirle.</p>');
+  return h;
+}
+function openHub(tab){
+  htab=tab||htab;const sm=scoreMap();
+  let h='<h2>👥 Social</h2><div class="ptabs">'+[['t','🛡 Equipo'],['f','👥 Amigos'],['r','⚔️ Rivales'],['c','💬 Chat']].map(t=>'<button data-a="hub" data-t="'+t[0]+'" class="'+(htab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  h+=htab==='t'?teamPanel(sm):htab==='f'?friendsPanel(sm):htab==='r'?rivalsPanel(sm):chatPanel();
+  sheet(h);
+}
+function act(a,d){
+  switch(a){
+    case 'hub':openHub(d.t);break;
+    case 'rank':openRank(d.t,d.b===undefined?undefined:+d.b);break;
+    case 'show':showPlayer(d.u);break;
+    case 'barrio':showBarrioMap(+d.b);break;
+    case 'chat':openChat(d.k);break;
+    case 'dm':openChat(dmKey(DB.session,d.u));break;
+    case 'quick':sendText(REACTS[+d.n].e+' '+REACTS[+d.n].t);break;
+    case 'follow':follow(d.u!==undefined?d.u:$('fname').value);break;
+    case 'unfollow':unfollow(d.u);break;
+    case 'create':createTeam($('tname').value,$('temo').value);break;
+    case 'join':joinTeam(d.t);break;
+    case 'leave':leaveTeam();break;
+    case 'walk':callWalk();break;
+    case 'react':sendReact(d.u,+d.e,+d.n,'n');break;
+    case 'taunt':sendReact(d.u,Math.random()*REACTS.length|0,-1,'r');break;
+  }
+}
+$('sheetIn').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset)});
+$('btnSoc').onclick=()=>openHub();
+
+/* ============ ARRANQUE ============ */
+if(DB.session&&DB.users[DB.session])enter();
+</script>
+</body>
+</html>
