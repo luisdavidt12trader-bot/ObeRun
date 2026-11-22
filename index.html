@@ -76,6 +76,13 @@ input{width:100%;padding:12px;margin-bottom:10px;border:1px solid var(--line);bo
 select.sel{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font-size:16px}
 .blabel{font-size:11px;font-weight:700;color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap;opacity:.7;pointer-events:none;text-align:center;text-transform:uppercase;letter-spacing:.05em}
 .dotn{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#dc2626;color:#fff;font-size:11px;text-align:center;padding:0 5px}
+.shop{width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 6px #0004}
+.sw{height:52px;border-radius:10px;margin-bottom:6px;border:1px solid var(--line)}
+.item{border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13px;text-align:center}
+.item.on{border-color:var(--acc)}.item b{display:block;margin-bottom:4px}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:22px;letter-spacing:.2em;margin:6px 0;font-weight:700}
+.flag{padding:8px 10px;border-radius:10px;margin-bottom:6px;font-size:13px;border:1px solid var(--line)}
+.flag.reject{border-color:#dc2626;background:#dc262618}.flag.warn{border-color:#d97706;background:#d9770618}.flag.ok{border-color:var(--acc);background:#16a34a18}
 #fx{position:fixed;inset:0;z-index:2500;pointer-events:none;display:none}
 #banner{position:fixed;left:50%;top:38%;z-index:2600;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;text-align:center;background:var(--card);border:2px solid var(--acc);border-radius:20px;padding:18px 26px;box-shadow:0 10px 40px #0006;max-width:88%}
 #banner.show{animation:pop 3.2s ease forwards}
@@ -148,6 +155,31 @@ const SHIELD_BASE=2*HOUR;                       // escudo base de cada zona conq
 const SHIELD_PER_STREAK=30*60e3;                // +30 min por día de racha (hasta 10 días)
 const MAX_STR=5;                                // fuerza máxima de una zona
 const XP_LEVEL=200;
+// --- Privacidad ---
+const PRIV_RADII=[100,200,300,500];             // radios posibles de la zona privada (m)
+const PRIV_COOLDOWN=7*DAY;                      // la zona solo se puede cambiar 1 vez por semana
+// --- Anti-trampas ---
+const AC={MAX_AVG:3.3,WIN_S:45,WIN_AVG:4.2,TELE_M:150,TELE_S:10,MIN_PERFECT:12,MAX_LOOP_M2:1.5e6,DRIFT_MS:30000};
+// --- Tienda de cosméticos (se pagan con monedas 🪙 ganadas jugando) ---
+const SHOP=[
+  {id:'c_coral',t:'color',n:'Coral',v:'#ff6b6b',p:50},{id:'c_cyan',t:'color',n:'Cian',v:'#00c8ff',p:50},
+  {id:'c_lime',t:'color',n:'Lima',v:'#a3e635',p:50},{id:'c_pink',t:'color',n:'Rosa',v:'#ff4fd8',p:80},
+  {id:'c_violet',t:'color',n:'Violeta',v:'#8b5cf6',p:80},{id:'c_obsid',t:'color',n:'Obsidiana',v:'#1f2937',p:100},
+  {id:'c_gold',t:'color',n:'Oro',v:'#facc15',p:150},
+  {id:'p_stripes',t:'pattern',n:'Rayas',v:'stripes',p:150},{id:'p_grid',t:'pattern',n:'Cuadrícula',v:'grid',p:150},
+  {id:'p_dots',t:'pattern',n:'Puntos',v:'dots',p:200},
+  {id:'e_glow',t:'effect',n:'Resplandor',v:'glow',p:250},{id:'e_neon',t:'effect',n:'Neón',v:'neon',p:400}
+];
+const PAT_BUDGET=5000;                          // tope de líneas/puntos de patrones por dibujo
+// --- Comercios aliados (ejemplos: reemplazalos por tus comercios reales) ---
+const COUPON_COOLDOWN=7*DAY, COUPON_VALID=7*DAY;
+const SHOPS=(()=>{const [la,lo]=START_CENTER;return[
+  {id:'cafe',n:'Café del Centro',e:'☕',c:[la+0.0010,lo+0.0008],offer:'10% de descuento en cualquier café',r:40},
+  {id:'pan',n:'Panadería La Espiga',e:'🥐',c:[la-0.0012,lo+0.0015],offer:'2x1 en medialunas',r:40},
+  {id:'helado',n:'Heladería Polar',e:'🍦',c:[la+0.0020,lo-0.0012],offer:'15% de descuento en helados',r:40},
+  {id:'gym',n:'Gimnasio FitZone',e:'🏋️',c:[la-0.0020,lo-0.0014],offer:'Pase libre por un día',r:40},
+  {id:'libro',n:'Librería Rayuela',e:'📚',c:[la+0.0004,lo-0.0025],offer:'5% de descuento en libros',r:40},
+  {id:'jugo',n:'Jugos Vitamina',e:'🥤',c:[la-0.0006,lo+0.0030],offer:'Jugo natural gratis al comprar un sándwich',r:40}]})();
 const MAX_TEAM=10;                              // miembros máximos por equipo
 const TEAM_EMOJIS=['🦅','🐺','🦁','🐯','🔥','⚡','🌵','🐢','🦊','🚀'];
 const REACTS=[{e:'😡',t:'¡Me las vas a pagar!'},{e:'🤡',t:'Qué susto… ni lo sentí'},{e:'😂',t:'Jaja, ni cosquillas'},{e:'😎',t:'La recupero mañana'},{e:'🔥',t:'Esto es guerra'}];
@@ -164,7 +196,7 @@ const BARRIOS=(()=>{const [la,lo]=START_CENTER,d=0.008;return[
 // En la app real esto será Supabase/Firebase.
 // celda = [dueño, conquistadaEn, refuerzos, desde, daño, escudoMs, díaRefuerzo]
 const KEY='conquista_v3';
-const DEF={users:{},cells:{},season:null,history:[],session:null,notifs:{},stats:{},ach:{},missions:{},teams:{},friends:{},chats:{},seen:{},steals:{}};
+const DEF={users:{},cells:{},season:null,history:[],session:null,notifs:{},stats:{},ach:{},missions:{},teams:{},friends:{},chats:{},seen:{},steals:{},inv:{},coupons:{},visits:{}};
 let DB=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'));
 const PREF=Object.assign({area:'auto',dist:'auto'},JSON.parse(localStorage.getItem('conquista_pref')||'{}'));
 const savePref=()=>localStorage.setItem('conquista_pref',JSON.stringify(PREF));
@@ -302,7 +334,7 @@ function updMissions(R,dist,night){
   m.list.forEach(x=>{
     if(x.done)return;
     x.p+=MK[x.k].inc(R,dist,night);
-    if(x.p>=x.g){x.p=x.g;x.done=true;st.xp+=100;queueCel('✅ ¡Misión cumplida!',MK[x.k].txt(x.g)+' · +100 XP',false)}
+    if(x.p>=x.g){x.p=x.g;x.done=true;st.xp+=100;st.coins=(st.coins||0)+30;queueCel('✅ ¡Misión cumplida!',MK[x.k].txt(x.g)+' · +100 XP · +30 🪙',false)}
   });
 }
 
@@ -323,13 +355,16 @@ const ACH=[
   {id:'team',i:'🛡️',n:'Compañero',d:'Unite a un equipo',ok:(s,c,me)=>!!teamOf(me)},
   {id:'friend',i:'🤝',n:'Sociable',d:'Seguí a otro jugador',ok:(s,c,me)=>(DB.friends[me]||[]).length>=1},
   {id:'king',i:'🏘️',n:'Rey del barrio',d:'Sé el número 1 de un barrio',ok:(s,c,me)=>leadersOf(me).length>=1},
-  {id:'troll',i:'😈',n:'Provocador',d:'Mandá una reacción o mensaje a otro jugador',ok:s=>(s.msgs||0)>=1}
+  {id:'troll',i:'😈',n:'Provocador',d:'Mandá una reacción o mensaje a otro jugador',ok:s=>(s.msgs||0)>=1},
+  {id:'shop',i:'🎟️',n:'Cliente frecuente',d:'Ganá un cupón de un comercio aliado',ok:(s,c,me)=>(DB.coupons[me]||[]).length>=1},
+  {id:'skin',i:'🎨',n:'Con estilo',d:'Equipá un cosmético de la tienda',ok:(s,c,me)=>Object.values(skinOf(me)).some(Boolean)},
+  {id:'priv',i:'🔒',n:'Reservado',d:'Configurá tu zona privada',ok:(s,c,me)=>!!(DB.users[me]||{}).priv}
 ];
 function checkAch(){
   const me=DB.session,st=getStats(me),A=DB.ach[me]=DB.ach[me]||{};
   const cur=((scores().find(s=>s.name===me)||{n:0}).n)*CELL_M2;
   ACH.forEach(a=>{
-    if(!A[a.id]&&a.ok(st,cur,me)){A[a.id]=Date.now();st.xp+=50;queueCel('🏅 Logro: '+a.n,a.d+' · +50 XP',false)}
+    if(!A[a.id]&&a.ok(st,cur,me)){A[a.id]=Date.now();st.xp+=50;st.coins=(st.coins||0)+20;queueCel('🏅 Logro: '+a.n,a.d+' · +50 XP · +20 🪙',false)}
   });
 }
 
@@ -369,7 +404,8 @@ function enter(){
     setInterval(()=>{if(DB.session)draw()},60000); // vence escudos / sube fuerza
   }
   setTimeout(()=>map.invalidateSize(),100);
-  draw();drawBarrios();
+  draw();drawBarrios();drawShops();drawPrivacy();
+  {const u0=DB.users[DB.session];if(!u0.priv&&!u0.privAsked){u0.privAsked=true;save();setTimeout(()=>toast('🔒 Tip: configurá tu zona privada en ☰ → Privacidad para ocultar dónde vivís',8000),3500)}}
   const n=unread();
   if(n){
     toast('🔔 Tenés '+n+' aviso'+(n>1?'s':'')+' nuevo'+(n>1?'s':'')+': tocá la campana',5000);
@@ -379,18 +415,33 @@ function enter(){
 function refreshTop(){
   const me=DB.session;if(!me)return;
   const u=DB.users[me],st=getStats(me);
-  $('meName').textContent=me;$('meDot').style.background=u.color;$('meLvl').textContent='Nv '+lvl(st.xp);
+  $('meName').textContent=me;$('meDot').style.background=colorOf(me);$('meLvl').textContent='Nv '+lvl(st.xp);
   $('meStreak').textContent='🔥 '+curStreak(st);
   const n=unread();$('badge').textContent=n;$('badge').style.display=n?'flex':'none';
   const mine=(scores().find(s=>s.name===me)||{n:0}).n;
   $('meScore').textContent=fmtArea(mine*CELL_M2);
   const sn=unreadChat();$('sbadge').textContent=sn;$('sbadge').style.display=sn?'flex':'none';
 }
+let patBudget=0;
+function isLight(hex){const n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return .299*r+.587*g+.114*b>170}
+function patternOverlay(kind,la0,la1,lo0,lo1,col){
+  const light=isLight(col),st={renderer,color:light?'#000':'#fff',weight:1,opacity:light?.3:.55,interactive:false};
+  if(kind==='dots'){
+    for(let la=la0+2*DLAT;la<la1&&patBudget>0;la+=4*DLAT)
+      for(let lo=lo0+2*DLNG;lo<lo1&&patBudget>0;lo+=4*DLNG){patBudget--;L.circleMarker([la,lo],Object.assign({radius:1.2,fill:true,fillOpacity:st.opacity,stroke:false,fillColor:st.color},{renderer,interactive:false})).addTo(cellLayer)}
+    return;
+  }
+  const sp=kind==='grid'?4:3;
+  for(let la=la0+sp*DLAT/2;la<la1&&patBudget>0;la+=sp*DLAT){patBudget--;L.polyline([[la,lo0],[la,lo1]],st).addTo(cellLayer)}
+  if(kind==='grid')for(let lo=lo0+sp*DLNG/2;lo<lo1&&patBudget>0;lo+=sp*DLNG){patBudget--;L.polyline([[la0,lo],[la1,lo]],st).addTo(cellLayer)}
+}
 function draw(){
   cellLayer.clearLayers();
   const t=Date.now(),rows={};
   for(const k in DB.cells){
-    const c=DB.cells[k],p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
+    const c=DB.cells[k];
+    if(!visibleTo(c))continue;                 // privacidad: publicación con retraso
+    const p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
     const key=c[0]+'|'+cellStr(c)+'|'+(c[1]+(c[5]||0)>t?1:0)+'|'+i;
     (rows[key]=rows[key]||[]).push(j);
   }
@@ -403,20 +454,28 @@ function draw(){
     for(let n=1;n<js.length;n++){if(js[n]===p+1){p=js[n]}else{add();a=p=js[n]}}
     add();
   }
+  patBudget=PAT_BUDGET;
+  const sk={};
   for(const k2 in blocks){
     const [o,ss,sh,as,ps]=k2.split('|'),a=+as,p=+ps,str=+ss,is=blocks[k2].sort((x,y)=>x-y);
-    const col=(DB.users[o]||{}).color||'#888',mine=o===DB.session,shd=sh==='1';
-    const fo=Math.min(.85,.25+.12*str);
-    const style={renderer,color:shd?'#fff':col,weight:shd?1.2:.6,opacity:shd?.8:fo,dashArray:null,fillColor:col,fillOpacity:fo,interactive:false};
+    const col=colorOf(o),shd=sh==='1';
+    const S=sk[o]=sk[o]||{fx:skinItem(o,'effect'),pt:skinItem(o,'pattern')};
+    const neon=S.fx&&S.fx.v==='neon'&&!shd,fo=Math.min(.85,.25+.12*str);
+    const style={renderer,color:shd||neon?'#fff':col,weight:shd?1.2:(neon?1.5:.6),opacity:shd||neon?.85:fo,dashArray:null,fillColor:col,fillOpacity:fo,interactive:false};
     let i0=is[0],i1=i0;
-    const flush=()=>L.rectangle([[i0*DLAT,a*DLNG],[(i1+1)*DLAT,(p+1)*DLNG]],style).addTo(cellLayer);
+    const flush=()=>{
+      const bd=[[i0*DLAT,a*DLNG],[(i1+1)*DLAT,(p+1)*DLNG]];
+      if(S.fx)L.rectangle(bd,{renderer,color:col,weight:S.fx.v==='neon'?10:7,opacity:.22,fill:false,interactive:false}).addTo(cellLayer);
+      L.rectangle(bd,style).addTo(cellLayer);
+      if(S.pt&&patBudget>0)patternOverlay(S.pt.v,bd[0][0],bd[1][0],bd[0][1],bd[1][1],col);
+    };
     for(let n=1;n<is.length;n++){if(is[n]===i1+1){i1=is[n]}else{flush();i0=i1=is[n]}}
     flush();
   }
   refreshTop();
 }
 function inspect(ll){
-  const c=DB.cells[Math.floor(ll.lat/DLAT)+':'+Math.floor(ll.lng/DLNG)];
+  const c0=DB.cells[Math.floor(ll.lat/DLAT)+':'+Math.floor(ll.lng/DLNG)],c=(c0&&visibleTo(c0))?c0:null;
   let h;
   if(!c)h='<b>Zona libre</b><br>Encerrala para conquistarla';
   else{
@@ -433,7 +492,10 @@ function setStatus(t){$('status').textContent=t}
 function toast(t,ms=4500){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',ms)}
 function ui(recording){$('rowStart').style.display=recording?'none':'flex';$('rowRec').style.display=recording?'flex':'none'}
 function startRec(type){
-  rec={type,pts:[],watch:null};ui(true);
+  const st0=getStats(DB.session),lock=(st0.lockUntil||0)-Date.now();
+  if(lock>0){toast('🚫 Cuenta en revisión por actividad sospechosa. Volvés a jugar en '+fmtDur(lock),6000);return}
+  pickMode=null;
+  rec={type,pts:[],watch:null,bad:0};ui(true);
   if(type==='sim'){setStatus('Tocá el mapa para marcar tu recorrido. Volvé cerca del inicio para cerrar el lazo.')}
   else{
     if(!navigator.geolocation){toast('Este dispositivo no tiene GPS');return stopAll()}
@@ -453,8 +515,8 @@ function dist(a,b){
   return 2*R*Math.asin(Math.sqrt(x));
 }
 function pathLen(p){let s=0;for(let i=1;i<p.length;i++)s+=dist(p[i-1],p[i]);return s}
-function addPoint(lat,lng,t){
-  const pts=rec.pts,p=[lat,lng,t],col=DB.users[DB.session].color;
+function addPoint(lat,lng,t,acc,drift){
+  const pts=rec.pts,p=[lat,lng,t,acc,drift],col=colorOf(DB.session);
   if(!pts.length){
     pts.push(p);
     startMarker=L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:3,fillColor:col,fillOpacity:1}).addTo(map);
@@ -465,7 +527,11 @@ function addPoint(lat,lng,t){
   if(rec.type==='gps'){
     if(d<MIN_STEP)return false;
     const dt=(t-last[2])/1000;
-    if(dt>0&&d/dt>MAX_SPEED){toast('⚠️ Vas muy rápido ('+(d/dt*3.6).toFixed(0)+' km/h). Ese tramo no cuenta.');return false}
+    if(dt>0&&d/dt>MAX_SPEED){rec.bad++;toast('⚠️ Vas muy rápido ('+(d/dt*3.6).toFixed(0)+' km/h). Ese tramo no cuenta.');return false}
+    // velocidad sostenida (ventana): bici / moto / auto
+    let k=pts.length-1;while(k>0&&(t-pts[k][2])/1000<AC.WIN_S)k--;
+    const w=(t-pts[k][2])/1000;
+    if(w>=AC.WIN_S*.6&&dist(pts[k],p)/w>AC.WIN_AVG){rec.bad++;toast('🚗 Parece que vas en vehículo: no se registran puntos');return false}
   }
   pts.push(p);pathLine.addLatLng([lat,lng]);
   if(pts.length>=4&&pathLen(pts)>=90&&dist(pts[0],p)<=CLOSE_DIST){finishLoop();return true}
@@ -480,9 +546,10 @@ function onGps(pos){
   if(!meMarker)meMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16]})}).addTo(map);
   else meMarker.setLatLng(ll);
   if(!rec.pts.length)map.setView(ll,18);
-  if(addPoint(ll[0],ll[1],pos.timestamp||Date.now()))map.panTo(ll,{animate:true});
+  if(addPoint(ll[0],ll[1],pos.timestamp||Date.now(),c.accuracy,(pos.timestamp||Date.now())-Date.now()))map.panTo(ll,{animate:true});
 }
 function onMapClick(e){
+  if(pickMode){const r=pickMode;pickMode=null;setStatus('Elegí cómo querés jugar');setPrivZone(e.latlng.lat,e.latlng.lng,r);openPrivacy();return}
   if(rec){if(rec.type==='sim')addPoint(e.latlng.lat,e.latlng.lng,Date.now());return}
   inspect(e.latlng);
 }
@@ -509,12 +576,13 @@ function inPoly(x,y,poly){
 function capture(poly,owner,opt={}){
   let minLa=1e9,maxLa=-1e9,minLo=1e9,maxLo=-1e9;
   poly.forEach(p=>{minLa=Math.min(minLa,p[0]);maxLa=Math.max(maxLa,p[0]);minLo=Math.min(minLo,p[1]);maxLo=Math.max(maxLo,p[1])});
-  const R={inside:0,fresh:0,flipped:0,stolen:{},hits:0,blocked:0,reinforced:0,maxStr:0,ally:0},V={};
-  const t=Date.now(),today=Math.floor(t/DAY),sh=opt.noShield?0:shieldFor(owner);
+  const R={inside:0,fresh:0,flipped:0,stolen:{},hits:0,blocked:0,reinforced:0,maxStr:0,ally:0,priv:0},V={};
+  const t=Date.now(),today=Math.floor(t/DAY),sh=opt.noShield?0:shieldFor(owner),Z=privZones();
   const vic=n=>V[n]=V[n]||{f:0,h:0,b:0};
   for(let i=Math.floor(minLa/DLAT);i<=Math.floor(maxLa/DLAT);i++)
     for(let j=Math.floor(minLo/DLNG);j<=Math.floor(maxLo/DLNG);j++){
       if(!inPoly((j+.5)*DLNG,(i+.5)*DLAT,poly))continue;
+      if(Z.length&&inPrivZone(i,j,Z)){R.priv++;continue}
       R.inside++;
       const k=i+':'+j,cur=DB.cells[k];
       if(!cur){DB.cells[k]=[owner,t,0,t,0,sh,0];R.fresh++;continue}
@@ -538,17 +606,24 @@ function finishLoop(){
   const pts=rec.pts.map(p=>[p[0],p[1]]);
   if(pts.length<3){toast('Necesitás al menos 3 puntos para encerrar un área');return}
   const walked=pathLen(rec.pts),st=getStats(DB.session);
+  let clean=false;
+  if(rec.type==='gps'){
+    const A=analyzeTrack(rec.pts,{bad:rec.bad||0});A.label='Resultado de tu último lazo';
+    if(!judge(A,st))return;
+    clean=A.clean;
+  }
   const newDay=updStreak(st);                 // la racha cuenta antes de calcular el escudo
   const before=scores(),lvl0=lvl(st.xp),tb=teamScores(),lb=leadersOf(DB.session);
   const R=capture(pts,DB.session);
   stopAll();
-  if(!R.inside){draw();toast('El lazo es muy chico: no encerró ninguna celda');return}
+  if(!R.inside){draw();toast(R.priv?'🔒 Esa zona está restringida: no se puede conquistar':'El lazo es muy chico: no encerró ninguna celda');return}
   const parts=[],gain=R.fresh+R.flipped,sn=Object.entries(R.stolen);
   if(gain)parts.push('🎉 +'+fmtArea(gain*CELL_M2));
   if(sn.length)parts.push('Robaste '+sn.map(([n,c])=>fmtArea(c*CELL_M2)+' a '+n).join(', '));
   if(R.hits)parts.push('⚔️ '+fmtArea(R.hits*CELL_M2)+' dañado (defensa fuerte)');
   if(R.blocked)parts.push('🛡 '+fmtArea(R.blocked*CELL_M2)+' protegido por escudo');
   if(R.reinforced)parts.push('💪 más fuerza en '+fmtArea(R.reinforced*CELL_M2));
+  if(R.priv)parts.push('🔒 '+fmtArea(R.priv*CELL_M2)+' en zona restringida (no cuenta)');
   if(R.ally)parts.push('🤝 '+fmtArea(R.ally*CELL_M2)+' son de tu equipo (no se roban)');
   if(!parts.length)parts.push('Ese territorio ya es tuyo y ya lo reforzaste hoy');
   toast(parts.join(' · '),7000);
@@ -564,14 +639,17 @@ function finishLoop(){
   const h=new Date().getHours(),night=h>=20||h<6;
   st.loops++;st.dist+=walked;st.cells+=gain;st.stolen+=R.flipped;st.maxLoop=Math.max(st.maxLoop,R.inside);
   if(night)st.night++;
+  if(clean)st.trust=Math.min(100,trustOf(st)+2);
   if(R.maxStr>=MAX_STR)st.fort++;
   if(ov.over.length)st.overtakes++;
   if(ov.lead)st.leads++;
-  st.xp+=10+(R.flipped?10:0);
+  st.xp+=10+(R.flipped?10:0);st.coins=(st.coins||0)+5+Math.min(20,Math.floor(gain*CELL_M2/500));
+  if(newDay&&[3,7,14,30].includes(st.streak))st.coins=(st.coins||0)+40;
   if(newDay&&[3,7,14,30].includes(st.streak))queueCel('🔥 ¡Racha de '+st.streak+' días!','Tus escudos ahora duran '+fmtDur(shieldFor(DB.session)),false);
+  grantCoupons(pts);
   updMissions(R,walked,night);
   checkAch();
-  if(lvl(st.xp)>lvl0)queueCel('⭐ ¡Subiste al nivel '+lvl(st.xp)+'!','Seguí caminando para conquistar más',false);
+  if(lvl(st.xp)>lvl0){st.coins=(st.coins||0)+25;queueCel('⭐ ¡Subiste al nivel '+lvl(st.xp)+'!','Seguí caminando · +25 🪙',false)}
   save();draw();
 }
 function overtakeInfo(before){
@@ -671,8 +749,8 @@ function openProfile(tab){
   ptab=tab||ptab;
   const me=DB.session,st=getStats(me),u=DB.users[me],L=lvl(st.xp),cur=st.xp-(L-1)*XP_LEVEL;
   const A=DB.ach[me]||{};
-  let h='<div class="prof"><span class="dot" style="background:'+u.color+';width:38px;height:38px"></span><div style="flex:1"><b style="font-size:18px">'+me+'</b><div class="mut" style="font-size:13px">Nivel '+L+' · '+st.xp+' XP</div><div class="bar"><i style="width:'+(cur/XP_LEVEL*100)+'%"></i></div></div></div>';
-  h+='<div class="kv"><div>🔥<b>'+curStreak(st)+'</b><small>días de racha</small></div><div>🛡<b>'+fmtDur(shieldFor(me))+'</b><small>escudo por zona</small></div><div>🏅<b>'+Object.keys(A).length+'/'+ACH.length+'</b><small>logros</small></div></div>';
+  let h='<div class="prof"><span class="dot" style="background:'+colorOf(me)+';width:38px;height:38px"></span><div style="flex:1"><b style="font-size:18px">'+me+'</b><div class="mut" style="font-size:13px">Nivel '+L+' · '+st.xp+' XP</div><div class="bar"><i style="width:'+(cur/XP_LEVEL*100)+'%"></i></div></div></div>';
+  h+='<div class="kv"><div>🔥<b>'+curStreak(st)+'</b><small>días de racha</small></div><div>🛡<b>'+fmtDur(shieldFor(me))+'</b><small>escudo por zona</small></div><div>🏅<b>'+Object.keys(A).length+'/'+ACH.length+'</b><small>logros</small></div><div>🪙<b>'+(st.coins||0)+'</b><small>monedas</small></div></div>';
   h+='<div class="ptabs">'+[['m','🎯 Misiones'],['a','🏅 Logros'],['s','📊 Stats']].map(t=>'<button data-tab="'+t[0]+'" class="'+(ptab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
   if(ptab==='m'){
     const m=ensureMissions(me),d=8-(new Date().getDay()||7);
@@ -681,7 +759,7 @@ function openProfile(tab){
   }else if(ptab==='a'){
     h+='<div class="agrid">'+ACH.map(a=>'<div class="ac'+(A[a.id]?' on':'')+'"><div class="i">'+a.i+'</div><b>'+a.n+'</b><small>'+a.d+'</small></div>').join('')+'</div>';
   }else{
-    const rows=[['Lazos cerrados',st.loops],['Distancia caminada',fmtDist(st.dist)],['Territorio conquistado (total)',fmtArea(st.cells*CELL_M2)],['Territorio robado (total)',fmtArea(st.stolen*CELL_M2)],['Lazo más grande',fmtArea(st.maxLoop*CELL_M2)],['Mejor racha',st.best+' días'],['Caminatas nocturnas',st.night]];
+    const rows=[['Lazos cerrados',st.loops],['Distancia caminada',fmtDist(st.dist)],['Territorio conquistado (total)',fmtArea(st.cells*CELL_M2)],['Territorio robado (total)',fmtArea(st.stolen*CELL_M2)],['Lazo más grande',fmtArea(st.maxLoop*CELL_M2)],['Mejor racha',st.best+' días'],['Caminatas nocturnas',st.night],['Confianza (juego limpio)',trustOf(st)+'%']];
     h+=rows.map(r=>'<div class="rk"><span class="n">'+r[0]+'</span><b style="width:auto">'+r[1]+'</b></div>').join('');
   }
   sheet(h);
@@ -692,6 +770,10 @@ function openProfile(tab){
 function timeTravel(ms){
   for(const k in DB.cells){const c=DB.cells[k],since=c[3]||c[1];c[1]-=ms;c[3]=since-ms;if(c[6])c[6]-=Math.round(ms/DAY)}
   if(ms>=DAY)for(const u in DB.stats){const s=DB.stats[u];if(s.last){const d=new Date(s.last+'T12:00:00');d.setDate(d.getDate()-Math.round(ms/DAY));s.last=dayKey(d)}}
+  for(const u in DB.users){const x=DB.users[u];if(x.privAt)x.privAt-=ms;if(x.priv)x.priv.setAt-=ms}
+  for(const u in DB.stats){const x=DB.stats[u];if(x.lockUntil)x.lockUntil-=ms}
+  for(const k in DB.visits)DB.visits[k]-=ms;
+  for(const u in DB.coupons)DB.coupons[u].forEach(c=>{c.ts-=ms;c.exp-=ms});
   save();draw();
 }
 function rivalPoly(c,r){const p=[];for(let a=0;a<360;a+=30){const t=a*Math.PI/180;p.push([c.lat+r*Math.sin(t)*(0.8+Math.random()*.4),c.lng+r*Math.cos(t)*(0.8+Math.random()*.4)*1.1])}return p}
@@ -706,13 +788,20 @@ $('btnMenu').onclick=()=>{
    opts([['auto','Automática'],['m2','Metros² (m²)'],['ha','Hectáreas (ha)'],['km2','Kilómetros² (km²)'],['acre','Acres']],PREF.area)+
    '</select></label><label>Distancia<select id="uDist">'+
    opts([['auto','Automática'],['m','Metros (m)'],['km','Kilómetros (km)'],['mi','Millas (mi)']],PREF.dist)+
-   '</select></label></div><h3>Juego</h3><div class="menu">'+
+   '</select></label></div><h3>Mi cuenta</h3><div class="menu">'+
+   '<button id="mPriv">🔒 Privacidad<small>'+(DB.users[DB.session].priv?'Zona privada activa · ':'Zona privada sin configurar · ')+'retraso y modo fantasma</small></button>'+
+   '<button id="mShop">🛍️ Tienda de cosméticos<small>Tenés 🪙 '+(getStats(DB.session).coins||0)+' monedas</small></button>'+
+   '<button id="mCoup">🎟️ Cupones de comercios<small>'+((DB.coupons[DB.session]||[]).filter(c=>!c.used&&c.exp>Date.now()).length)+' activos</small></button></div>'+
+   '<h3>Juego</h3><div class="menu">'+
    '<button id="mBar">🏘️ Nombres de barrios en el mapa: '+(PREF.barrios===false?'No':'Sí')+'</button>'+
+   '<button id="mShopsT">🏪 Comercios aliados en el mapa: '+(PREF.shops===false?'No':'Sí')+'</button>'+
+   '<button id="mFair">🛡️ Juego limpio (anti-trampas)<small>Confianza '+trustOf(getStats(DB.session))+'% · probá el detector</small></button>'+
    '<button id="mRules">ℹ️ Reglas: escudo, fuerza, racha<small>Cómo funciona cada mecánica</small></button></div>'+
    '<h3>Modo prueba</h3><div class="menu">'+
    '<button id="mRival">🤖 El rival conquista una zona<small>Aparece una zona del usuario "rival" cerca del centro del mapa, sin escudo</small></button>'+
    '<button id="mAtk">🤖 El rival te ataca<small>Ataca una de tus zonas: verás el escudo, el daño y el aviso 🔔</small></button>'+
    '<button id="mTaunt">🤖 El rival te provoca<small>Te manda una reacción y un mensaje directo</small></button>'+
+   '<button id="mCoins">💳 Sumar 500 monedas (compra simulada)<small>En la app real: Google Play Billing / App Store</small></button>'+
    '<button id="mT3">⏩ Avanzar el tiempo +3 horas<small>Para ver vencer los escudos</small></button>'+
    '<button id="mT24">⏩ Avanzar el tiempo +1 día<small>Sube la fuerza de las zonas y permite continuar la racha</small></button></div>'+
    '<h3>Cuenta</h3><div class="menu">'+
@@ -731,7 +820,16 @@ $('btnMenu').onclick=()=>{
     '<p>🛡 <b>Equipos.</b> Los territorios de todos los miembros se suman en el ranking de equipos (máx. '+MAX_TEAM+'). Los compañeros <b>no pueden robarse zonas</b> entre sí.</p>'+
     '<p>👥 <b>Amigos y rivales.</b> Seguí jugadores para ver sus zonas en el mapa. Tus rivales aparecen solos cuando se roban territorio.</p>'+
     '<p>🏘️ <b>Barrios.</b> Cada barrio tiene su propio ranking y un rey. Si lo desbloqueás, ¡celebración!</p>'+
-    '<p>💬 <b>Chat y reacciones.</b> Respondé a quien te ataque desde la campana, o escribí en el chat de la ciudad, del equipo o directo.</p></div>');
+    '<p>💬 <b>Chat y reacciones.</b> Respondé a quien te ataque desde la campana, o escribí en el chat de la ciudad, del equipo o directo.</p>'+
+    '<p>🔒 <b>Privacidad.</b> Tu recorrido nunca se guarda. Podés definir una zona privada (tu casa), publicar con retraso y activar el modo fantasma.</p>'+
+    '<p>🛡️ <b>Juego limpio.</b> Se analizan la velocidad, los saltos de ubicación y las señales de GPS simulado. Los lazos sospechosos se rechazan y bajan tu confianza.</p>'+
+    '<p>🛍️ <b>Tienda y cupones.</b> Ganás 🪙 jugando y las gastás en colores, patrones y efectos para tu territorio. Si caminás cerca de un comercio 🏪 aliado, ganás su cupón.</p></div>');
+  $('mPriv').onclick=openPrivacy;
+  $('mShop').onclick=()=>openShop('color');
+  $('mCoup').onclick=openCoupons;
+  $('mFair').onclick=()=>openFair();
+  $('mCoins').onclick=addCoins;
+  $('mShopsT').onclick=()=>{PREF.shops=(PREF.shops===false);savePref();drawShops();closeSheet()};
   $('mBar').onclick=()=>{PREF.barrios=(PREF.barrios===false);savePref();drawBarrios();closeSheet()};
   $('mTaunt').onclick=()=>{
     ensureRival();const r=REACTS[Math.random()*REACTS.length|0];
@@ -764,7 +862,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const teamOf=u=>(DB.users[u]||{}).team||null;
 const sameTeam=(a,b)=>{const t=teamOf(a);return !!t&&t===teamOf(b)};
 const tagOf=u=>{const t=teamOf(u);return t&&DB.teams[t]?DB.teams[t].emoji+' ':''};
-const colorOf=u=>(DB.users[u]||{}).color||'#888';
+const colorOf=u=>{const it=skinItem(u,'color');return it?it.v:((DB.users[u]||{}).color||'#888')};
 const btn=(a,label,data={})=>'<button class="sbtn" data-a="'+a+'"'+Object.entries(data).map(([k,v])=>' data-'+k+'="'+esc(v)+'"').join('')+'>'+label+'</button>';
 function scoreMap(){const c={};for(const k in DB.cells){const o=DB.cells[k][0];c[o]=(c[o]||0)+1}return c}
 function teamScores(){
@@ -811,7 +909,7 @@ function showBarrioMap(i){closeSheet();map.setView(BARRIOS[i].c,16);toast('📍 
 function showPlayer(name){
   let a=1e9,b=-1e9,c=1e9,d=-1e9,n=0;
   for(const k in DB.cells){
-    if(DB.cells[k][0]!==name)continue;
+    if(DB.cells[k][0]!==name||!visibleTo(DB.cells[k]))continue;
     const p=k.indexOf(':'),i=+k.slice(0,p),j=+k.slice(p+1);
     a=Math.min(a,i);b=Math.max(b,i);c=Math.min(c,j);d=Math.max(d,j);n++;
   }
@@ -863,7 +961,7 @@ function follow(u){
   const me=DB.session;u=(u||'').trim().toLowerCase();
   if(!u)return;
   if(u===me)return toast('Ese sos vos 😄');
-  if(!DB.users[u])return toast('No existe el jugador "'+u+'"');
+  if(!DB.users[u]||DB.users[u].ghost)return toast('No existe el jugador "'+u+'"');
   const F=DB.friends[me]=DB.friends[me]||[];
   if(F.includes(u))return toast('Ya lo seguís');
   F.push(u);notify(u,{type:'follow',by:me});afterSocial();openHub('f');
@@ -960,7 +1058,7 @@ function friendsPanel(sm){
   const me=DB.session,F=DB.friends[me]||[];
   let h='<div class="sendrow"><input id="fname" placeholder="Nombre de usuario a seguir" autocapitalize="none" autocomplete="off"><button class="primary" data-a="follow">Seguir</button></div>';
   h+='<h3>Siguiendo ('+F.length+')</h3>'+(F.length?F.map(u=>person(u,sm,btn('show','🗺️ Zonas',{u})+btn('dm','💬',{u})+btn('unfollow','✖',{u}),(DB.friends[u]||[]).includes(me)?' · te sigue':'')).join(''):'<p class="mut" style="font-size:14px">Todavía no seguís a nadie. Escribí un usuario arriba o elegí uno sugerido.</p>');
-  const sug=Object.keys(DB.users).filter(u=>u!==me&&!F.includes(u)).sort((a,b)=>(sm[b]||0)-(sm[a]||0)).slice(0,5);
+  const sug=Object.keys(DB.users).filter(u=>u!==me&&!F.includes(u)&&!DB.users[u].ghost).sort((a,b)=>(sm[b]||0)-(sm[a]||0)).slice(0,5);
   if(sug.length)h+='<h3>Sugeridos</h3>'+sug.map(u=>person(u,sm,btn('follow','➕ Seguir',{u}))).join('');
   return h;
 }
@@ -1002,11 +1100,278 @@ function act(a,d){
     case 'leave':leaveTeam();break;
     case 'walk':callWalk();break;
     case 'react':sendReact(d.u,+d.e,+d.n,'n');break;
+    case 'shop':openShop(d.t);break;
+    case 'buy':buy(d.id);break;
+    case 'equip':equip(d.id);break;
+    case 'unequip':unequip(d.t);break;
+    case 'coins':addCoins();break;
+    case 'use':useCoupon(d.id);break;
+    case 'shops':showShops();break;
+    case 'ac':runScenario(d.k);break;
     case 'taunt':sendReact(d.u,Math.random()*REACTS.length|0,-1,'r');break;
   }
 }
 $('sheetIn').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset)});
 $('btnSoc').onclick=()=>openHub();
+
+/* ============ PRIVACIDAD ============ */
+let pickMode=null,privLayer,shopLayer;
+const privZones=()=>Object.values(DB.users).filter(u=>u.priv).map(u=>u.priv);
+function inPrivZone(i,j,Z){
+  const la=(i+.5)*DLAT,lo=(j+.5)*DLNG,cs=Math.cos(la*Math.PI/180);
+  for(const z of Z){const dy=(la-z.lat)*111320,dx=(lo-z.lng)*111320*cs;if(dx*dx+dy*dy<=z.r*z.r)return true}
+  return false;
+}
+const delayMs=u=>((DB.users[u]||{}).delay||0)*60000;
+function visibleTo(c){const me=DB.session,o=c[0];return o===me||sameTeam(me,o)||Date.now()-c[1]>=delayMs(o)}
+function setPrivZone(lat,lng,r){
+  const me=DB.session,u=DB.users[me];
+  if(u.privAt&&Date.now()-u.privAt<PRIV_COOLDOWN)return toast('Podés cambiar tu zona privada una vez por semana (faltan '+fmtDur(PRIV_COOLDOWN-(Date.now()-u.privAt))+')',6000);
+  // el punto exacto NO se guarda: el centro se desplaza al azar hasta el 30% del radio
+  const ang=Math.random()*2*Math.PI,off=Math.random()*.3*r;
+  const la=lat+off*Math.sin(ang)/111320,lo=lng+off*Math.cos(ang)/(111320*Math.cos(lat*Math.PI/180));
+  u.priv={lat:la,lng:lo,r,setAt:Date.now()};u.privAt=Date.now();
+  let n=0;
+  for(const k in DB.cells){
+    if(DB.cells[k][0]!==me)continue;
+    const p=k.indexOf(':');
+    if(inPrivZone(+k.slice(0,p),+k.slice(p+1),[u.priv])){delete DB.cells[k];n++}
+  }
+  afterSocial();draw();drawPrivacy();
+  toast('🔒 Zona privada activada'+(n?' · se quitaron '+fmtArea(n*CELL_M2)+' tuyos de esa zona':''),6000);
+}
+function removePrivZone(){
+  const u=DB.users[DB.session];
+  if(u.privAt&&Date.now()-u.privAt<PRIV_COOLDOWN)return toast('Podés cambiar tu zona privada una vez por semana (faltan '+fmtDur(PRIV_COOLDOWN-(Date.now()-u.privAt))+')',6000);
+  u.priv=null;u.privAt=Date.now();save();drawPrivacy();openPrivacy();
+}
+function drawPrivacy(){
+  if(!map)return;
+  if(!privLayer)privLayer=L.layerGroup().addTo(map);
+  privLayer.clearLayers();
+  const z=(DB.users[DB.session]||{}).priv;
+  if(z)L.circle([z.lat,z.lng],{radius:z.r,color:'#7c3aed',weight:2,dashArray:'6 6',fillColor:'#7c3aed',fillOpacity:.07,interactive:false}).addTo(privLayer);
+}
+function openPrivacy(){
+  const me=DB.session,u=DB.users[me],z=u.priv;
+  const left=u.privAt?PRIV_COOLDOWN-(Date.now()-u.privAt):0;
+  sheet('<h2>🔒 Privacidad</h2><p class="mut" style="font-size:13px;margin:0">Tu recorrido y tu punto de partida <b>nunca se guardan ni se comparten</b>: solo quedan las zonas conquistadas.</p>'+
+   '<h3>Zona privada (tu casa)</h3><p style="font-size:14px;margin:0 0 8px">'+(z?'✅ Activa · radio '+z.r+' m. Nadie puede conquistar ahí ni ver actividad, y no se guarda tu ubicación exacta (el centro se desplaza al azar).':'⚠️ Sin configurar. Elegí un radio y marcá dónde vivís: esa zona queda fuera del juego.')+(left>0?' <span class="mut">Podés cambiarla en '+fmtDur(left)+'.</span>':'')+'</p>'+
+   '<div class="sendrow"><select id="prR" class="sel">'+PRIV_RADII.map(r=>'<option value="'+r+'"'+((z?z.r:200)===r?' selected':'')+'>'+r+' m</option>').join('')+'</select><button class="sbtn" id="prGps" style="flex:1;padding:12px">📍 Usar mi ubicación</button><button class="sbtn" id="prMap" style="flex:1;padding:12px">🗺️ Elegir en el mapa</button></div>'+
+   (z?'<div style="margin-top:8px"><button class="sbtn" id="prDel" style="color:#dc2626">Quitar zona privada</button></div>':'')+
+   '<h3>Publicar con retraso</h3><select id="prDelay" class="sel" style="width:100%">'+[[0,'Sin retraso'],[15,'15 minutos'],[60,'1 hora']].map(o=>'<option value="'+o[0]+'"'+((u.delay||0)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+   '<p class="mut" style="font-size:12px;margin:6px 0 0">Tus zonas nuevas se muestran a los demás recién pasado ese tiempo, para que nadie te siga en vivo. Tu equipo las ve al instante.</p>'+
+   '<h3>Modo fantasma</h3><button class="sbtn" id="prGhost" style="width:100%;padding:12px;text-align:left">'+(u.ghost?'👻 Activado: no aparezco en sugeridos y no me pueden buscar':'👤 Desactivado')+'</button>');
+  $('prGps').onclick=()=>navigator.geolocation.getCurrentPosition(p=>{setPrivZone(p.coords.latitude,p.coords.longitude,+$('prR').value);openPrivacy()},()=>toast('No se pudo obtener tu ubicación'),{enableHighAccuracy:true,timeout:10000});
+  $('prMap').onclick=()=>{pickMode=+$('prR').value;closeSheet();setStatus('🔒 Tocá el mapa donde vivís (no se guarda el punto exacto)');toast('Tocá el mapa para marcar tu zona privada',6000)};
+  const d=$('prDel');if(d)d.onclick=removePrivZone;
+  $('prDelay').onchange=e=>{u.delay=+e.target.value;save();draw()};
+  $('prGhost').onclick=()=>{u.ghost=!u.ghost;save();openPrivacy()};
+}
+
+/* ============ ANTI-TRAMPAS ============ */
+const trustOf=st=>st.trust==null?100:st.trust;
+function polyAreaM2(pts){
+  if(pts.length<3)return 0;
+  const la0=pts[0][0],lo0=pts[0][1],cs=Math.cos(la0*Math.PI/180);let s=0;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=(pts[i][1]-lo0)*111320*cs,yi=(pts[i][0]-la0)*111320,xj=(pts[j][1]-lo0)*111320*cs,yj=(pts[j][0]-la0)*111320;
+    s+=xj*yi-xi*yj;
+  }
+  return Math.abs(s)/2;
+}
+function cvar(a){
+  if(a.length<2)return 1;
+  const m=a.reduce((x,y)=>x+y,0)/a.length;if(!m)return 1;
+  return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length)/Math.abs(m);
+}
+// pts: [lat,lng,tiempo_ms,precision?,desfase_reloj_ms?]
+function analyzeTrack(pts,opt={}){
+  const F=[],n=pts.length,steps=[],dts=[],cum=[0];
+  let dsum=0,maxSeg=0,tele=0;
+  for(let i=1;i<n;i++){
+    const d=dist(pts[i-1],pts[i]),dt=(pts[i][2]-pts[i-1][2])/1000;
+    dsum+=d;cum.push(dsum);steps.push(d);dts.push(dt);
+    if(dt>0)maxSeg=Math.max(maxSeg,d/dt);
+    if(d>=AC.TELE_M&&dt<AC.TELE_S)tele++;
+  }
+  const dur=n>1?(pts[n-1][2]-pts[0][2])/1000:0,avg=dur>0?dsum/dur:0;
+  let wmax=0;
+  for(let i=0,j=0;i<n;i++){
+    if(j<i)j=i;
+    while(j<n-1&&(pts[j][2]-pts[i][2])/1000<AC.WIN_S)j++;
+    const w=(pts[j][2]-pts[i][2])/1000;
+    if(w>=AC.WIN_S*.6)wmax=Math.max(wmax,(cum[j]-cum[i])/w);
+  }
+  const kmh=v=>nf(v*3.6,1)+' km/h';
+  if(tele)F.push({code:'teleport',sev:'reject',msg:'Saltos de ubicación imposibles (más de '+AC.TELE_M+' m en menos de '+AC.TELE_S+' s)'});
+  if(n>3&&dur<=0)F.push({code:'time',sev:'reject',msg:'Todas las posiciones tienen la misma hora'});
+  if((opt.bad||0)>=5)F.push({code:'speed',sev:'reject',msg:'Muchos tramos a velocidad imposible para una caminata'});
+  else if((opt.bad||0)>=2)F.push({code:'speed',sev:'warn',msg:'Algunos tramos a velocidad imposible fueron ignorados'});
+  if(avg>AC.MAX_AVG)F.push({code:'vehicle',sev:'reject',msg:'Velocidad media de '+kmh(avg)+': parece bici, moto o auto'});
+  else if(wmax>AC.WIN_AVG)F.push({code:'vehicle',sev:'reject',msg:'Tramo sostenido a '+kmh(wmax)+': parece un vehículo'});
+  if(n>=AC.MIN_PERFECT&&cvar(steps)<.04&&cvar(dts)<.04)F.push({code:'fake',sev:'reject',msg:'Ruta demasiado perfecta: pasos y tiempos idénticos (posible GPS simulado)'});
+  const accs=pts.map(p=>p[3]).filter(a=>a!=null);
+  if(accs.length>=10&&new Set(accs.map(a=>Math.round(a*10))).size===1)F.push({code:'accuracy',sev:'warn',msg:'La precisión del GPS nunca varía (sospechoso)'});
+  const drift=Math.max(0,...pts.map(p=>Math.abs(p[4]||0)));
+  if(drift>AC.DRIFT_MS)F.push({code:'clock',sev:'warn',msg:'La hora del GPS no coincide con la del teléfono'});
+  if(polyAreaM2(pts)>AC.MAX_LOOP_M2)F.push({code:'bigloop',sev:'reject',msg:'El lazo es demasiado grande para una caminata'});
+  const reject=F.some(f=>f.sev==='reject'),warn=!reject&&F.length>0;
+  return {reject,warn,clean:F.length===0,flags:F,stats:{dist:dsum,dur,avg,max:maxSeg,n}};
+}
+function judge(A,st){
+  if(A.clean)return true;
+  st.trust=Math.max(0,trustOf(st)-(A.reject?15:5));
+  if(st.trust<40){st.lockUntil=Date.now()+DAY;st.trust=60}
+  save();refreshTop();
+  if(A.reject){stopAll();openFair(A);return false}
+  toast('⚠️ Señales sospechosas: '+A.flags[0].msg,6000);
+  return true;
+}
+const SCEN=[['walk','🚶 Caminata normal (5 km/h)'],['run','🏃 Trote (10 km/h)'],['bike','🚲 Bicicleta (22 km/h)'],['car','🚗 Auto (50 km/h)'],['tele','📡 Teletransporte (salto de 2 km)'],['fake','🤖 GPS simulado (ruta perfecta)']];
+function genTrack(kind){
+  const R=80,N=44,la=START_CENTER[0],lo=START_CENTER[1],cs=Math.cos(la*Math.PI/180);
+  const v={walk:1.4,run:2.8,bike:6,car:14,fake:1.4,tele:1.4}[kind]||1.4,fake=kind==='fake',base=2*Math.PI/N;
+  let t=Date.now()-3600e3,ang=0;const pts=[];
+  for(let i=0;i<=N;i++){
+    const jit=fake?1:.7+Math.random()*.6;
+    if(i>0){ang+=base*jit;t+=R*base*jit/v*(fake?1:.8+Math.random()*.4)*1000}
+    const nz=fake?0:2;
+    let lat=la+(R*Math.sin(ang)+(Math.random()-.5)*nz)/111320,lng=lo+(R*Math.cos(ang)+(Math.random()-.5)*nz)/(111320*cs);
+    if(kind==='tele'&&i>=N/2){lat+=.02;if(i===Math.floor(N/2))t-=(R*base/v*1000)-3000}
+    pts.push([lat,lng,t,fake?5:4+Math.random()*8,0]);
+  }
+  return pts;
+}
+function runScenario(k){
+  const res=analyzeTrack(genTrack(k),{bad:k==='car'?6:0});
+  res.label='Prueba: '+SCEN.find(x=>x[0]===k)[1];
+  openFair(res);
+}
+function openFair(res){
+  const me=DB.session,st=getStats(me),tr=trustOf(st),lock=(st.lockUntil||0)-Date.now();
+  let h='<h2>🛡️ Juego limpio</h2><div style="margin:6px 0 12px"><b>Confianza: '+tr+'%</b><div class="bar"><i style="width:'+tr+'%;background:'+(tr>=70?'var(--acc)':tr>=40?'#d97706':'#dc2626')+'"></i></div><small class="mut">Baja con lazos rechazados o sospechosos y sube de a poco con caminatas limpias. Por debajo de 40% la cuenta queda en revisión 24 h.</small></div>';
+  if(lock>0)h+='<div class="flag reject">Cuenta en revisión: podés volver a conquistar en '+fmtDur(lock)+'.</div>';
+  if(res){
+    h+='<h3>'+esc(res.label||'Resultado')+'</h3>';
+    h+='<div class="flag '+(res.reject?'reject':res.warn?'warn':'ok')+'"><b>'+(res.reject?'🚫 Rechazado':res.warn?'⚠️ Con advertencias':'✅ Válido')+'</b><br><small>'+fmtDist(res.stats.dist)+' en '+fmtDur(res.stats.dur*1000)+' · media '+nf(res.stats.avg*3.6,1)+' km/h · máx. '+nf(res.stats.max*3.6,1)+' km/h</small></div>';
+    h+=res.flags.map(f=>'<div class="flag '+f.sev+'">'+(f.sev==='reject'?'🚫':'⚠️')+' '+esc(f.msg)+'</div>').join('');
+  }
+  h+='<h3>Qué verificamos</h3><div class="rules"><p>🚗 <b>Velocidad:</b> media y tramos sostenidos. Caminar y trotar valen; bici, moto y auto no.</p><p>📡 <b>Saltos:</b> teletransportes de ubicación.</p><p>🤖 <b>GPS simulado:</b> rutas demasiado perfectas, precisión que nunca varía, hora desfasada.</p><p>🗺️ <b>Tamaño:</b> lazos imposibles para una caminata (más de '+fmtArea(AC.MAX_LOOP_M2)+').</p><p class="mut">En la app nativa se suma la detección de ubicación falsa del sistema (Android <i>isMock</i>, iOS <i>simulatedBySoftware</i>), podómetro, Play Integrity / App Attest y revisión en el servidor. Estos controles de la web son solo una primera capa.</p></div>';
+  h+='<h3>Probar el detector</h3><div class="menu">'+SCEN.map(x=>'<button data-a="ac" data-k="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
+  sheet(h);
+}
+
+/* ============ TIENDA DE COSMÉTICOS ============ */
+const skinOf=u=>(DB.users[u]||{}).skin||{};
+const skinItem=(u,t)=>{const id=skinOf(u)[t];return id?SHOP.find(x=>x.id===id)||null:null};
+let shopTab='color';
+function swatchStyle(it,me){
+  const c=colorOf(me);
+  if(it.t==='color')return 'background:'+it.v;
+  if(it.t==='pattern'){
+    if(it.v==='stripes')return 'background:repeating-linear-gradient(0deg,'+c+' 0 5px,rgba(255,255,255,.6) 5px 7px)';
+    if(it.v==='grid')return 'background:linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px) 0 0/10px 10px,linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px) 0 0/10px 10px,'+c;
+    return 'background:radial-gradient(circle,rgba(255,255,255,.85) 1.5px,transparent 2px) 0 0/10px 10px,'+c;
+  }
+  if(it.v==='glow')return 'background:'+c+';box-shadow:0 0 12px 4px '+c;
+  return 'background:'+c+';border:2px solid #fff;box-shadow:0 0 14px 5px '+c;
+}
+function openShop(tab){
+  shopTab=tab||shopTab;
+  const me=DB.session,st=getStats(me),inv=DB.inv[me]||[],sk=skinOf(me),coins=st.coins||0;
+  let h='<h2>🛍️ Tienda</h2><div class="prof"><span class="dot" style="background:'+colorOf(me)+';width:30px;height:30px"></span><div style="flex:1"><b style="font-size:18px">🪙 '+coins+' monedas</b><div class="mut" style="font-size:12px">Las ganás caminando, con misiones, logros y rachas</div></div></div>';
+  h+='<div class="ptabs">'+[['color','🎨 Colores'],['pattern','▦ Patrones'],['effect','✨ Efectos']].map(t=>'<button data-a="shop" data-t="'+t[0]+'" class="'+(shopTab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<p class="mut" style="font-size:12px;margin:0 0 8px">Tus cosméticos los ven todos los jugadores en el mapa. No cambian las reglas: solo el estilo.</p>';
+  const none='<div class="item'+(!sk[shopTab]?' on':'')+'"><div class="sw" style="background:'+(shopTab==='color'?((DB.users[me]||{}).color||'#888'):'repeating-linear-gradient(45deg,var(--line) 0 6px,transparent 6px 12px)')+'"></div><b>Por defecto</b>'+(!sk[shopTab]?'<small class="mut">✓ Equipado</small>':btn('unequip','Usar',{t:shopTab}))+'</div>';
+  h+='<div class="agrid">'+none+SHOP.filter(x=>x.t===shopTab).map(it=>{
+    const own=inv.includes(it.id),on=sk[it.t]===it.id;
+    return '<div class="item'+(on?' on':'')+'"><div class="sw" style="'+swatchStyle(it,me)+'"></div><b>'+it.n+'</b>'+(on?'<small class="mut">✓ Equipado</small>':own?btn('equip','Usar',{id:it.id}):btn('buy','🪙 '+it.p,{id:it.id}))+'</div>';
+  }).join('')+'</div>';
+  h+='<h3>Monedas</h3><div class="mi"><div style="font-size:14px">¿Querés más monedas ya? En la app real se compran con dinero (Google Play / App Store).</div><div style="margin-top:8px">'+btn('coins','💳 Comprar 500 🪙 (simulado)')+'</div></div>';
+  sheet(h);
+}
+function buy(id){
+  const me=DB.session,st=getStats(me),it=SHOP.find(x=>x.id===id),inv=DB.inv[me]=DB.inv[me]||[];
+  if(!it||inv.includes(id))return;
+  if((st.coins||0)<it.p)return toast('Te faltan '+(it.p-(st.coins||0))+' 🪙. Ganalas caminando o completando misiones');
+  st.coins-=it.p;inv.push(id);
+  queueCel('🛍️ ¡Nuevo cosmético!',it.n+' ya es tuyo',false);
+  equip(id);
+}
+function equip(id){
+  const me=DB.session,it=SHOP.find(x=>x.id===id);
+  if(!it||!(DB.inv[me]||[]).includes(id))return;
+  (DB.users[me].skin=DB.users[me].skin||{})[it.t]=id;
+  checkAch();save();draw();openShop();
+}
+function unequip(t){const me=DB.session;(DB.users[me].skin=DB.users[me].skin||{})[t]=null;save();draw();openShop()}
+function addCoins(){const st=getStats(DB.session);st.coins=(st.coins||0)+500;save();toast('💳 +500 monedas (compra simulada)');openShop()}
+
+/* ============ COMERCIOS ALIADOS Y CUPONES ============ */
+function drawShops(){
+  if(!map)return;
+  if(!shopLayer)shopLayer=L.layerGroup();
+  shopLayer.clearLayers();
+  if(PREF.shops===false){map.removeLayer(shopLayer);return}
+  shopLayer.addTo(map);
+  SHOPS.forEach(s=>{
+    L.circle(s.c,{radius:s.r,color:'#f59e0b',weight:1,dashArray:'4 4',fillColor:'#f59e0b',fillOpacity:.08,interactive:false}).addTo(shopLayer);
+    L.marker(s.c,{icon:L.divIcon({className:'',html:'<div class="shop">'+s.e+'</div>',iconSize:[30,30],iconAnchor:[15,15]})})
+      .bindPopup('<b>'+s.e+' '+esc(s.n)+'</b><br>'+esc(s.offer)+'<br><small>Caminá a menos de '+s.r+' m para ganar tu cupón</small>').addTo(shopLayer);
+  });
+}
+function showShops(){
+  closeSheet();
+  PREF.shops=true;savePref();drawShops();
+  map.fitBounds(L.latLngBounds(SHOPS.map(s=>s.c)),{padding:[50,50],maxZoom:16});
+}
+function nearPath(s,path){
+  const la0=s.c[0],lo0=s.c[1],cs=Math.cos(la0*Math.PI/180);
+  const P=path.concat([path[0]]).map(p=>[(p[1]-lo0)*111320*cs,(p[0]-la0)*111320]);
+  for(let i=0;i<P.length;i++){
+    const a=P[i],b=P[i+1]||P[i],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;
+    let t=L2?(-a[0]*dx-a[1]*dy)/L2:0;t=Math.max(0,Math.min(1,t));
+    const x=a[0]+t*dx,y=a[1]+t*dy;
+    if(x*x+y*y<=s.r*s.r)return true;
+  }
+  return false;
+}
+function grantCoupons(path){
+  const me=DB.session,out=[],now=Date.now(),A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  SHOPS.forEach(s=>{
+    if(!nearPath(s,path))return;
+    const key=me+'|'+s.id;
+    if(now-(DB.visits[key]||0)<COUPON_COOLDOWN)return;
+    DB.visits[key]=now;
+    let code='';for(let i=0;i<6;i++)code+=A[Math.random()*A.length|0];
+    (DB.coupons[me]=DB.coupons[me]||[]).unshift({id:s.id+'-'+now.toString(36),shop:s.id,code,ts:now,exp:now+COUPON_VALID,used:false});
+    const st=getStats(me);st.coins=(st.coins||0)+25;
+    queueCel(s.e+' ¡Cupón de '+s.n+'!',s.offer+' · +25 🪙',false);
+    out.push(s);
+  });
+  return out;
+}
+function useCoupon(id){
+  const c=(DB.coupons[DB.session]||[]).find(x=>x.id===id);
+  if(c&&!c.used&&c.exp>=Date.now()){c.used=true;save();toast('✅ Cupón marcado como usado')}
+  openCoupons();
+}
+function openCoupons(){
+  const me=DB.session,L=DB.coupons[me]||[],now=Date.now();
+  let h='<h2>🎟️ Cupones</h2><p class="mut" style="font-size:13px;margin:0 0 8px">Caminá a menos de '+SHOPS[0].r+' m de un comercio aliado 🏪 para ganar su cupón (uno por comercio por semana). Mostrá el código en el local.</p>';
+  h+=L.length?L.map(c=>{
+    const s=SHOPS.find(x=>x.id===c.shop)||{e:'🏪',n:'Comercio',offer:''};
+    const state=c.used?'✅ Usado':c.exp<now?'⌛ Vencido':'Vence en '+fmtDur(c.exp-now);
+    return '<div class="mi"><div><b>'+s.e+' '+esc(s.n)+'</b></div><div style="font-size:14px">'+esc(s.offer)+'</div><div class="code">'+esc(c.code)+'</div><small class="mut">'+state+'</small>'+(!c.used&&c.exp>=now?'<div style="margin-top:6px">'+btn('use','Marcar como usado',{id:c.id})+'</div>':'')+'</div>';
+  }).join(''):'<p class="mut">Todavía no tenés cupones.</p>';
+  h+='<h3>Comercios aliados</h3>'+SHOPS.map(s=>{
+    const cd=COUPON_COOLDOWN-(now-(DB.visits[me+'|'+s.id]||0));
+    return '<div class="ppl"><div class="n"><b>'+s.e+' '+esc(s.n)+'</b><br><small class="mut">'+esc(s.offer)+'</small></div><small class="mut">'+(cd>0?'Disponible en '+fmtDur(cd):'Disponible ✅')+'</small></div>';
+  }).join('');
+  h+='<div style="margin-top:10px">'+btn('shops','📍 Ver comercios en el mapa')+'</div>';
+  sheet(h);
+}
 
 /* ============ ARRANQUE ============ */
 if(DB.session&&DB.users[DB.session])enter();
